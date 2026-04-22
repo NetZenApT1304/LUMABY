@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Lumaby Icon Generator</title>
+<style>
+  body { font-family: sans-serif; padding: 40px; background: #fdf6ee; color: #3d2b1f; }
+  h1 { margin-bottom: 8px; }
+  p { color: #8a7060; margin-bottom: 24px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+  canvas { border-radius: 22%; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+  button {
+    padding: 14px 28px; background: #c4795a; color: white; border: none;
+    border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer;
+    margin-right: 12px; margin-bottom: 12px;
+  }
+  button:hover { background: #a85e42; }
+  .instructions {
+    background: white; border-radius: 16px; padding: 20px;
+    border: 1px solid #e8d5bd; margin-top: 24px; line-height: 1.7;
+  }
+  code { background: #f5ebe0; padding: 2px 8px; border-radius: 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>🌸 Lumaby Icon Generator</h1>
+<p>Generate all required PWA icons. Click "Download All Icons" to save them.</p>
+
+<div class="grid" id="grid"></div>
+
+<button onclick="downloadAll()">⬇️ Download All Icons</button>
+<button onclick="downloadFavicon()">⬇️ Download Favicon</button>
+
+<div class="instructions">
+  <strong>After downloading:</strong><br>
+  1. Create a folder called <code>icons/</code> next to your <code>index.html</code><br>
+  2. Move all downloaded <code>icon-*.png</code> files into <code>icons/</code><br>
+  3. Your file structure should look like:<br><br>
+  <code>
+    bloom/<br>
+    &nbsp;&nbsp;index.html<br>
+    &nbsp;&nbsp;manifest.json<br>
+    &nbsp;&nbsp;sw.js<br>
+    &nbsp;&nbsp;icons/<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;icon-72.png<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;icon-96.png<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;icon-128.png<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;icon-144.png<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;icon-152.png<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;icon-192.png<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;icon-384.png<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;icon-512.png<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;favicon.ico<br>
+  </code>
+</div>
+
+<script>
+const SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
+
+function drawIcon(size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, '#d4a5a0');
+  grad.addColorStop(0.5, '#c4795a');
+  grad.addColorStop(1, '#a85e42');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  const r = size * 0.22; // rounded corners for maskable
+  ctx.roundRect(0, 0, size, size, r);
+  ctx.fill();
+
+  // Subtle inner glow
+  const glow = ctx.createRadialGradient(size*0.4, size*0.35, 0, size*0.5, size*0.5, size*0.7);
+  glow.addColorStop(0, 'rgba(255,255,255,0.2)');
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, r);
+  ctx.fill();
+
+  // Flower emoji
+  ctx.font = `${size * 0.52}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🌸', size / 2, size / 2 + size * 0.03);
+
+  return canvas;
+}
+
+// Render previews
+const grid = document.getElementById('grid');
+SIZES.forEach(size => {
+  const canvas = drawIcon(size);
+  canvas.style.width = Math.min(size, 100) + 'px';
+  canvas.style.height = Math.min(size, 100) + 'px';
+  canvas.title = `${size}x${size}`;
+  grid.appendChild(canvas);
+});
+
+function downloadAll() {
+  SIZES.forEach((size, i) => {
+    setTimeout(() => {
+      const canvas = drawIcon(size);
+      const link = document.createElement('a');
+      link.download = `icon-${size}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }, i * 200);
+  });
+}
+
+function downloadFavicon() {
+  const canvas = drawIcon(32);
+  const link = document.createElement('a');
+  link.download = 'favicon.ico';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+</script>
+</body>
+</html>
