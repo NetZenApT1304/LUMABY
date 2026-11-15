@@ -933,9 +933,65 @@ canvas.line-chart { width: 100% !important; height: 120px !important; }
   .action-btn { padding: 12px 4px; }
   .ab-icon { font-size: 20px; }
 }
+/* ── Night mode: dark, warm and dim for night feeds ── */
+html.night {
+  --cream: #17100d;
+  --warm-tan: #3b2a22;
+  --terracotta: #b8654a;
+  --terracotta-dark: #96503a;
+  --sage: #6f8f6f;
+  --dusty-rose: #a77a74;
+  --deep-brown: #f2cdb4;
+  --soft-gold: #b8903f;
+  --muted-blue: #6f8893;
+  --lilac: #8f7fa0;
+  --text: #e9c1a8;
+  --text-light: #a98672;
+  --card: rgba(46,31,25,0.92);
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
+  color-scheme: dark;
+}
+html.night body { background: var(--cream); }
+/* components that hard-code white */
+html.night .auth-tab.active, html.night .btn-google, html.night .btn-sec, html.night .coach-message,
+html.night .emoji-pick, html.night .form-input, html.night .invite-code-box, html.night .log-opt,
+html.night .pedi-tag, html.night .plan-card, html.night .milestone-card,
+html.night [style*="background:white"], html.night [style*="background: white"],
+html.night [style*="background:#fff"], html.night [style*="background: #fff"] {
+  background: #2a1d18 !important; color: var(--text);
+}
+html.night .toggle-slider::before { background: #d9b39c; }
+/* these use the dark brown as a background; it turns light at night */
+html.night .gen-price-tag, html.night .copy-btn, html.night .day-chip.active, html.night .timer-pill,
+html.night .nav-btn.active, html.night .toast { background: var(--terracotta-dark); color: #fbe6d8; }
+html.night .nav-btn.active .nav-icon, html.night .nav-btn.active .nav-lbl { color: #fbe6d8; }
+html.night input, html.night textarea, html.night select { color: var(--text); }
+html.night input::placeholder, html.night textarea::placeholder { color: #7d6152; }
+html.night .modal { background: #1f1612; }
+/* warm tint over everything (emoji and images too) to cut blue light */
+html.night body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 2147483647;
+  background: rgba(255,120,60,0.22); mix-blend-mode: multiply;
+}
+.night-toggle {
+  width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--warm-tan);
+  background: var(--card); font-size: 18px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0;
+}
+.header-right { display: flex; align-items: center; gap: 10px; }
 </style>
 </head>
 <body>
+<script>
+  // Night mode before first paint (no white flash at 3am). Full logic below.
+  (function () {
+    var m; try { m = JSON.parse(localStorage.getItem('bloom_nightMode')); } catch (e) {}
+    m = m || 'auto';
+    var h = new Date().getHours();
+    if (m === 'on' || (m === 'auto' && (h >= 20 || h < 7))) document.documentElement.classList.add('night');
+  })();
+</script>
 
 
 <!-- ══════════════ AUTH SCREEN ══════════════ -->
@@ -1110,7 +1166,10 @@ canvas.line-chart { width: 100% !important; height: 120px !important; }
         <h1 id="greeting">Good morning, <em>Mama</em> 🌿</h1>
         <p id="age-line">Loading...</p>
       </div>
-      <div class="baby-avatar" id="avatar" onclick="showProfileModal()">🌙</div>
+      <div class="header-right">
+        <button class="night-toggle" id="nightToggle" onclick="cycleNightMode()" aria-label="Night mode">🌗</button>
+        <div class="baby-avatar" id="avatar" onclick="showProfileModal()">🌙</div>
+      </div>
     </div>
 
     <div class="baby-switcher" id="babySwitcher"></div>
@@ -5177,6 +5236,45 @@ window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => openLogModal(action), 700);
   }
 });
+
+
+// =======================================
+//  NIGHT MODE
+//  auto (default): on from 8pm to 7am on this device's clock; on; off.
+// =======================================
+let nightMode = STORE.get('nightMode') || 'auto';
+const NIGHT_LABELS = { auto: 'Night mode: Auto (8pm–7am)', on: 'Night mode: On', off: 'Night mode: Off' };
+const NIGHT_ICONS = { auto: '🌗', on: '🌙', off: '☀️' };
+
+function nightActive() {
+  if (nightMode === 'on') return true;
+  if (nightMode === 'off') return false;
+  const h = new Date().getHours();
+  return h >= 20 || h < 7;
+}
+
+function applyNightMode() {
+  const on = nightActive();
+  document.documentElement.classList.toggle('night', on);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', on ? '#17100d' : '#c4795a');
+  const btn = document.getElementById('nightToggle');
+  if (btn) {
+    btn.textContent = NIGHT_ICONS[nightMode];
+    btn.title = NIGHT_LABELS[nightMode];
+    btn.setAttribute('aria-label', NIGHT_LABELS[nightMode]);
+  }
+}
+
+function cycleNightMode() {
+  nightMode = { auto: 'on', on: 'off', off: 'auto' }[nightMode] || 'auto';
+  STORE.set('nightMode', nightMode);
+  applyNightMode();
+  showToast(NIGHT_ICONS[nightMode] + ' ' + NIGHT_LABELS[nightMode]);
+}
+
+applyNightMode();
+setInterval(applyNightMode, 60000);
 
 // =======================================
 //  PWA ? Local Notifications
