@@ -1317,12 +1317,17 @@ const STORE = {
 };
 
 let profile = STORE.get('profile') || null;
-let logs = STORE.get('logs') || [];
-let growthLogs = STORE.get('growthLogs') || [];
+// allLogs / allGrowth hold every baby's entries (what is stored and synced).
+// logs / growthLogs are the active baby's entries, which the screens read.
+// Change entries through allLogs/allGrowth, then call refreshBabyView().
+let allLogs = STORE.get('logs') || [];
+let allGrowth = STORE.get('growthLogs') || [];
+let logs = allLogs;
+let growthLogs = allGrowth;
 let activeTimers = STORE.get('activeTimers') || {};
 
-function saveLogs() { STORE.set('logs', logs); }
-function saveGrowth() { STORE.set('growthLogs', growthLogs); }
+function saveLogs() { STORE.set('logs', allLogs); }
+function saveGrowth() { STORE.set('growthLogs', allGrowth); }
 function saveTimers() { STORE.set('activeTimers', activeTimers); }
 function saveProfile() { STORE.set('profile', profile); }
 
@@ -1360,6 +1365,7 @@ function completeOnboarding() {
 }
 
 function launchApp() {
+  ensureBabyView();
   // Hide every possible overlay
   ['auth-screen','onboarding'].forEach(id => {
     const el = document.getElementById(id);
@@ -1513,9 +1519,11 @@ function stopTimer(type) {
     title: timer.label,
     detail: fmtDuration(elapsed),
     time: new Date(timer.startMs).toISOString(),
-    durationMin: mins
+    durationMin: mins,
+    babyId: currentBabyId()
   };
-  logs.unshift(entry);
+  allLogs.unshift(entry);
+  refreshBabyView();
   saveLogs();
   renderTimeline();
   renderStats();
@@ -1623,7 +1631,8 @@ function getLogsForDate(date) {
 }
 
 function deleteLog(id) {
-  logs = logs.filter(l => l.id !== id);
+  allLogs = allLogs.filter(l => l.id !== id);
+  refreshBabyView();
   saveLogs();
   renderTimeline();
   renderStats();
@@ -1860,7 +1869,9 @@ function pickEmoji(el, emoji) {
 
 // == Save functions ==
 function pushLog(entry) {
-  logs.unshift(entry);
+  if (!entry.babyId) entry.babyId = currentBabyId();
+  allLogs.unshift(entry);
+  refreshBabyView();
   saveLogs();
   closeModal('modal-log');
   renderTimeline();
@@ -1945,8 +1956,9 @@ function saveGrowthEntry() {
   const date = document.getElementById('gr-date').value;
   const notes = document.getElementById('gr-notes').value;
   if (!weight && !heightIn) { showToast('⚠️ Enter at least weight or height'); return; }
-  growthLogs.push({ date, weight, heightIn, head, notes });
-  growthLogs.sort((a,b) => a.date.localeCompare(b.date));
+  allGrowth.push({ id: uid(), date, weight, heightIn, head, notes, babyId: currentBabyId() });
+  allGrowth.sort((a,b) => a.date.localeCompare(b.date));
+  refreshBabyView();
   saveGrowth();
   const detail = [weight?weight+'lbs':'', heightIn?heightIn+'"':'', head?head+'cm head':''].filter(Boolean).join(' · ');
   pushLog({ id:uid(), type:'growth', icon:'📏', title:'Growth measurement', detail, time:new Date(date).toISOString() });
@@ -2970,16 +2982,16 @@ const SYNC_TABLES = {
   },
   logs: {
     table: 'logs',
-    get: () => logs, set: v => { logs = v; },
-    persist: () => STORE.set('logs', logs),
+    get: () => allLogs, set: v => { allLogs = v; },
+    persist: () => STORE.set('logs', allLogs),
     columns: l => ({ type: l.type || null, icon: l.icon || null, title: l.title || null, detail: l.detail || null,
                      logged_at: l.time || null, baby_id: l.babyId || null }),
     sort: arr => arr.sort((a, b) => new Date(b.time) - new Date(a.time)),
   },
   growth: {
     table: 'growth_logs',
-    get: () => growthLogs, set: v => { growthLogs = v; },
-    persist: () => STORE.set('growthLogs', growthLogs),
+    get: () => allGrowth, set: v => { allGrowth = v; },
+    persist: () => STORE.set('growthLogs', allGrowth),
     columns: g => ({ log_date: g.date || null, weight_lbs: g.weight || null, height_in: g.heightIn || null,
                      head_cm: g.head || null, notes: g.notes || null, baby_id: g.babyId || null }),
     sort: arr => arr.sort((a, b) => (a.date || '').localeCompare(b.date || '')),
@@ -3154,12 +3166,14 @@ function schedulePush() {
 
 // Keep profile/active baby consistent and redraw after remote changes.
 function afterRemoteChange() {
+  if (babies.length) assignLegacyBabyIds();
   if (babies.length) {
     const i = profile?.id ? babies.findIndex(b => b.id === profile.id) : -1;
     activeBabyIndex = i >= 0 ? i : Math.min(activeBabyIndex, babies.length - 1);
     profile = babies[activeBabyIndex];
     STORE.set('activeBabyIndex', activeBabyIndex); saveProfile();
   }
+  refreshBabyView();
   clearTimeout(syncRenderTimer);
   syncRenderTimer = setTimeout(() => {
     if (document.getElementById('mainApp')?.style.display === 'none') return;
@@ -3198,7 +3212,8 @@ function unsubscribeRealtime() {
 
 function clearLocalAccountData() {
   ['logs', 'growthLogs', 'babies', 'activeBabyIndex', 'profile', 'syncState', 'partnerData'].forEach(k => STORE.del(k));
-  logs = []; growthLogs = []; babies = []; activeBabyIndex = 0; profile = null;
+  allLogs = []; allGrowth = []; logs = allLogs; growthLogs = allGrowth;
+  babies = []; activeBabyIndex = 0; profile = null;
   syncState = freshSyncState();
 }
 
@@ -3284,6 +3299,40 @@ let activeBabyIndex = STORE.get('activeBabyIndex') || 0;
 
 function saveBabies() { STORE.set('babies', babies); STORE.set('activeBabyIndex', activeBabyIndex); }
 
+// == Per-baby logs ==
+function currentBabyId() {
+  return (babies[activeBabyIndex] || babies[0] || {}).id || null;
+}
+
+// Point logs/growthLogs at the active baby's entries.
+function refreshBabyView() {
+  const id = currentBabyId();
+  if (!id) { logs = allLogs; growthLogs = allGrowth; return; }
+  logs = allLogs.filter(l => l.babyId === id);
+  growthLogs = allGrowth.filter(g => g.babyId === id);
+}
+
+// Entries from before logs belonged to a baby were all recorded for the
+// first baby, so give them that baby's id.
+function assignLegacyBabyIds() {
+  const first = babies[0]?.id;
+  if (!first) return;
+  let changedLogs = false, changedGrowth = false;
+  allLogs.forEach(l => { if (!l.babyId) { l.babyId = first; changedLogs = true; } });
+  allGrowth.forEach(g => {
+    if (!g.id) { g.id = uid(); changedGrowth = true; }
+    if (!g.babyId) { g.babyId = first; changedGrowth = true; }
+  });
+  if (changedLogs) saveLogs();
+  if (changedGrowth) saveGrowth();
+}
+
+function ensureBabyView() {
+  initBabies();
+  assignLegacyBabyIds();
+  refreshBabyView();
+}
+
 function initBabies() {
   // Safely migrate single profile to multi-baby system
   // Check if already migrated to prevent duplicates
@@ -3335,6 +3384,7 @@ function renderBabySwitcher() {
 function switchBaby(index) {
   activeBabyIndex = index;
   profile = babies[index];
+  refreshBabyView();
   saveBabies(); saveProfile();
   renderBabySwitcher();
   updateHeader();
@@ -3394,6 +3444,7 @@ function removeBaby(index) {
   babies.splice(index, 1);
   if (activeBabyIndex >= babies.length) activeBabyIndex = 0;
   profile = babies[activeBabyIndex] || null;
+  refreshBabyView();
   saveBabies(); saveProfile();
   closeModal('modal-baby-edit');
   renderBabySwitcher(); updateHeader(); renderHome();
