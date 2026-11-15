@@ -39,6 +39,12 @@ const STATUS_MAP = {
   expired: 'expired',
 };
 
+// Variant names are often just "Default", so look at the product name too.
+function planFrom(attrs) {
+  const label = `${attrs.product_name || ''} ${attrs.variant_name || ''}`.toLowerCase();
+  return /year|annual/.test(label) ? 'yearly' : 'monthly';
+}
+
 const json = (statusCode, body) => ({ statusCode, body: JSON.stringify(body) });
 
 function verifySignature(rawBody, signature, secret) {
@@ -143,7 +149,7 @@ exports.handler = async (event) => {
         ls_subscription_id: lsSubscriptionId,
         ls_customer_id: attrs.customer_id?.toString() || null,
         status,
-        plan: attrs.variant_name?.toLowerCase().includes('year') ? 'yearly' : 'monthly',
+        plan: planFrom(attrs),
         current_period_start: attrs.created_at || null,
         current_period_end: endsAt || attrs.renews_at || null,
         expires_at: endsAt,
