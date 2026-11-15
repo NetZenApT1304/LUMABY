@@ -840,6 +840,33 @@ textarea.form-input { resize: none; height: 80px; font-family: 'DM Sans', sans-s
 }
 .ic-title { font-size: 13px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; }
 
+/* Temperature card */
+.temp-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.temp-tile { background: rgba(61,43,31,0.04); border-radius: 12px; padding: 10px 8px; text-align: center; }
+.temp-tile .tt-v { font-size: 17px; font-weight: 700; color: var(--deep-brown); font-variant-numeric: tabular-nums; }
+.temp-tile .tt-l { font-size: 10.5px; color: var(--text-light); margin-top: 2px; line-height: 1.3; }
+.fever-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: #c94a3b; }
+.temp-chart-wrap { position: relative; margin: 0 -4px 10px; }
+.temp-chart-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
+.tc-grid { stroke: var(--text-light); stroke-opacity: 0.18; stroke-width: 1; }
+.tc-axis { fill: var(--text-light); font: 500 9.5px 'DM Sans', sans-serif; }
+.tc-fever-line { stroke: #c94a3b; stroke-width: 1.25; stroke-dasharray: 4 3; }
+.tc-fever-lbl { fill: #c94a3b; font: 600 9.5px 'DM Sans', sans-serif; }
+.tc-line { fill: none; stroke: var(--terracotta); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.tc-pt { fill: var(--terracotta); stroke: var(--cream); stroke-width: 2; }
+.tc-pt.fever { fill: #c94a3b; }
+.tc-hit { fill: transparent; cursor: pointer; }
+.tc-tip {
+  position: absolute; pointer-events: none; transform: translate(-50%, calc(-100% - 10px));
+  background: var(--deep-brown); color: var(--cream); font-size: 12px; padding: 6px 10px; border-radius: 10px;
+  white-space: nowrap; box-shadow: var(--shadow); display: none;
+}
+html.night .tc-tip { background: #3b2a22; color: var(--text); }
+.temp-list { border-top: 1px solid rgba(61,43,31,0.08); }
+.temp-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid rgba(61,43,31,0.05); font-size: 13px; }
+.temp-row .tr-when { color: var(--text-light); }
+.temp-row .tr-val { color: var(--deep-brown); font-weight: 600; font-variant-numeric: tabular-nums; }
+
 /* Bar chart */
 .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; }
 .bar-wrap { flex:1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
@@ -3207,14 +3234,17 @@ function checkPremium(feature) {
 // Gate elements with data-premium attribute
 function applyPremiumGates() {
   if (isPremium) {
-    // Remove all premium lock overlays
+    // Remove all premium lock overlays. Only re-render if there were locks:
+    // renderInsights/renderGrowth/... call this function themselves, so an
+    // unconditional re-render here recursed forever for Premium users.
+    const hadGates = document.querySelectorAll('.premium-gate').length > 0;
     document.querySelectorAll('.premium-gate').forEach(el => el.remove());
     document.querySelectorAll('.insight-card, .growth-card').forEach(card => {
       card.style.position = '';
       card.style.overflow = '';
     });
     // Re-render active screen with premium content
-    const active = document.querySelector('.screen.active');
+    const active = hadGates && document.querySelector('.screen.active');
     if (active) {
       const name = active.id.replace('screen-', '');
       if (name === 'insights') renderInsights();
@@ -3228,7 +3258,8 @@ function applyPremiumGates() {
   } else {
     // Add lock overlays for non-premium users
     setTimeout(() => {
-      document.querySelectorAll('.insight-card:nth-child(n+3)').forEach(card => {
+      // Temperature stays free: fever tracking is a safety feature.
+      document.querySelectorAll('.insight-card:nth-child(n+3):not(#temp-insights)').forEach(card => {
         if (card.querySelector('.premium-gate')) return;
         card.style.position = 'relative';
         card.style.overflow = 'hidden';
@@ -3499,9 +3530,119 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Patch renderInsights to apply gates after render
+
+// =======================================
+//  TEMPERATURE IN INSIGHTS & REPORTS
+// =======================================
+function tempOf(l, unit = tempUnit) {
+  if (unit === 'F') return l.tempF != null ? l.tempF : round1(toF(l.tempC));
+  return l.tempC != null ? l.tempC : round1(toC(l.tempF));
+}
+function isFeverReading(l) { return l.tempC != null ? l.tempC >= 38.0 : l.tempF >= 100.4; }
+// Readings in the last `days`, oldest first.
+function tempReadings(days = 14) {
+  const since = Date.now() - days * 86400000;
+  return logs.filter(l => l.type === 'temp' && (l.tempF != null || l.tempC != null) && Date.parse(l.time) >= since)
+    .sort((a, b) => Date.parse(a.time) - Date.parse(b.time));
+}
+function fmtWhen(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+function agoShort(iso) {
+  const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  if (m < 60) return `${Math.max(m, 0)}m ago`;
+  if (m < 48 * 60) return `${Math.round(m / 60)}h ago`;
+  return `${Math.round(m / 1440)}d ago`;
+}
+function tempSummary(days = 14) {
+  const r = tempReadings(days);
+  const week = r.filter(l => Date.parse(l.time) >= Date.now() - 7 * 86400000);
+  const highest = week.length ? week.reduce((a, b) => (tempOf(b) > tempOf(a) ? b : a)) : null;
+  const fevers = r.filter(isFeverReading);
+  return { readings: r, latest: r[r.length - 1] || null, highest, fevers, lastFever: fevers[fevers.length - 1] || null };
+}
+
+// Single-series line over the last 14 days with the fever threshold.
+function tempChartSvg(readings) {
+  const W = 320, H = 150, L = 34, R = 10, T = 12, B = 22;
+  const unit = tempUnit, range = TEMP_RANGE[unit];
+  const t1 = Date.now(), t0 = t1 - 14 * 86400000;
+  const vals = readings.map(l => tempOf(l));
+  const step = unit === 'F' ? 1 : 0.5;
+  const lo = Math.floor(Math.min(...vals, unit === 'F' ? 97 : 36) / step) * step;
+  const hi = Math.ceil(Math.max(...vals, range.fever + step) / step) * step;
+  const x = t => L + ((t - t0) / (t1 - t0)) * (W - L - R);
+  const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  // Round tick values: 1° (°F) or 0.5° (°C) multiples, at most ~4 lines.
+  const gridStep = step * Math.max(1, Math.ceil((hi - lo) / step / 4));
+  let grid = '';
+  for (let v = lo; v <= hi + 1e-9; v = round1(v + gridStep)) {
+    grid += `<line class="tc-grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>` +
+            `<text class="tc-axis" x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${(+v.toFixed(1))}</text>`;
+  }
+  const fy = y(range.fever);
+  const pts = readings.map(l => ({ l, cx: x(Date.parse(l.time)), cy: y(tempOf(l)) }));
+  const path = pts.map((p, i) => `${i ? 'L' : 'M'}${p.cx.toFixed(1)},${p.cy.toFixed(1)}`).join(' ');
+  const tip = l => `${tempOf(l).toFixed(1)} °${unit}${isFeverReading(l) ? ' · Fever' : ''} — ${fmtWhen(l.time)}`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Temperature readings over the last 14 days">
+    ${grid}
+    <line class="tc-fever-line" x1="${L}" x2="${W - R}" y1="${fy}" y2="${fy}"/>
+    <text class="tc-fever-lbl" x="${L + 4}" y="${fy - 4}">Fever ${range.fever}°</text>
+    ${pts.length > 1 ? `<path class="tc-line" d="${path}"/>` : ''}
+    ${pts.map(p => `<circle class="tc-pt ${isFeverReading(p.l) ? 'fever' : ''}" cx="${p.cx}" cy="${p.cy}" r="4"/>`).join('')}
+    ${pts.map(p => `<circle class="tc-hit" cx="${p.cx}" cy="${p.cy}" r="13" data-tip="${tip(p.l)}"/>`).join('')}
+    <text class="tc-axis" x="${L}" y="${H - 6}">${new Date(t0).toLocaleDateString([], { month: 'short', day: 'numeric' })}</text>
+    <text class="tc-axis" x="${W - R}" y="${H - 6}" text-anchor="end">Today</text>
+  </svg><div class="tc-tip" role="status"></div>`;
+}
+
+function tempInsightsCard() {
+  const s = tempSummary(14);
+  const u = `°${tempUnit}`;
+  if (!s.readings.length) {
+    return `<div class="insight-card" id="temp-insights">
+      <div class="ic-title">🌡️ Temperature</div>
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:12px">No readings in the last 14 days.</p>
+      <button class="btn-sec" onclick="openLogModal('temp')">Log a temperature</button></div>`;
+  }
+  const fever = l => isFeverReading(l) ? ' <span class="fever-tag">● Fever</span>' : '';
+  return `<div class="insight-card" id="temp-insights">
+    <div class="ic-title">🌡️ Temperature · last 14 days</div>
+    <div class="temp-tiles">
+      <div class="temp-tile"><div class="tt-v">${tempOf(s.latest).toFixed(1)}${u}</div><div class="tt-l">Latest · ${agoShort(s.latest.time)}</div></div>
+      <div class="temp-tile"><div class="tt-v">${s.highest ? tempOf(s.highest).toFixed(1) + u : '—'}</div><div class="tt-l">Highest this week</div></div>
+      <div class="temp-tile"><div class="tt-v" style="${s.fevers.length ? 'color:#c94a3b' : ''}">${s.fevers.length}</div><div class="tt-l">Fever readings${s.lastFever ? ' · last ' + agoShort(s.lastFever.time) : ''}</div></div>
+    </div>
+    <div class="temp-chart-wrap" id="temp-chart">${tempChartSvg(s.readings)}</div>
+    <div class="temp-list" aria-label="Recent temperature readings">
+      ${s.readings.slice(-5).reverse().map(l => `<div class="temp-row"><span class="tr-when">${fmtWhen(l.time)}</span>
+        <span><span class="tr-val">${tempOf(l).toFixed(1)} ${u}</span>${fever(l)}</span></div>`).join('')}
+    </div></div>`;
+}
+
+// Tooltip for chart points (hover with a mouse, tap on a phone).
+document.addEventListener('pointerover', e => {
+  const hit = e.target.closest?.('.tc-hit'); if (!hit) return;
+  const wrap = hit.closest('.temp-chart-wrap'), tip = wrap.querySelector('.tc-tip');
+  const svg = wrap.querySelector('svg'), box = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+  tip.textContent = hit.dataset.tip;
+  tip.style.display = 'block';
+  // keep the tooltip inside the card
+  const half = tip.offsetWidth / 2, px = (hit.cx.baseVal.value / vb.width) * box.width;
+  tip.style.left = Math.min(Math.max(px, half + 4), box.width - half - 4) + 'px';
+  tip.style.top = (hit.cy.baseVal.value / vb.height) * box.height + 'px';
+});
+document.addEventListener('pointerout', e => {
+  const hit = e.target.closest?.('.tc-hit'); if (!hit) return;
+  hit.closest('.temp-chart-wrap').querySelector('.tc-tip').style.display = 'none';
+});
+
 const _origRenderInsights = renderInsights;
 renderInsights = function() {
   _origRenderInsights();
+  const el = document.getElementById('insightsContent');
+  if (el) el.insertAdjacentHTML('beforeend', tempInsightsCard());
   applyPremiumGates();
 };
 
@@ -4734,6 +4875,18 @@ function showPediReport() {
           </div>`).join('')}
       </div>
 
+      ${(() => {
+        const t = tempSummary(14); if (!t.readings.length) return '';
+        const u = '°' + tempUnit;
+        return `<div style="font-size:12px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Temperature · last 14 days</div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:6px">
+            ${t.readings.length} reading${t.readings.length === 1 ? '' : 's'} · highest this week ${t.highest ? tempOf(t.highest).toFixed(1) + ' ' + u : '—'} ·
+            <span style="${t.fevers.length ? 'color:#c94a3b;font-weight:600' : ''}">${t.fevers.length} fever reading${t.fevers.length === 1 ? '' : 's'}</span></div>
+          ${t.readings.slice(-6).reverse().map(l => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(61,43,31,0.05);font-size:13px">
+            <span style="color:var(--text-light)">${fmtWhen(l.time)}</span>
+            <span style="color:var(--deep-brown);font-weight:600">${tempOf(l).toFixed(1)} ${u}${isFeverReading(l) ? ' <span style="color:#c94a3b">● Fever</span>' : ''}</span></div>`).join('')}
+          <div style="height:14px"></div>`;
+      })()}
       <div style="font-size:12px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Recent milestones</div>
       ${logs.filter(l => l.type === 'milestone').slice(0, 5).map(ms => `
         <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(61,43,31,0.05)">
@@ -4761,7 +4914,7 @@ async function generatePediPDF() {
   if (!window.jspdf) {
     await new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
       s.onload = res; s.onerror = rej;
       document.head.appendChild(s);
     });
@@ -4858,9 +5011,44 @@ jsPDF } = window.jspdf;
     });
   }
 
+  // Temperature
+  const temps = tempSummary(14);
+  if (temps.readings.length) {
+    const u = '\u00B0' + tempUnit;
+    if (y > 225) { doc.addPage(); y = 20; }
+    y += 6;
+    doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(61,43,31);
+    doc.text('Temperature (last 14 days)', 15, y); y += 7;
+    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(90,70,55);
+    doc.text(`${temps.readings.length} readings · highest this week ${temps.highest ? tempOf(temps.highest).toFixed(1) + ' ' + u : 'N/A'} · ${temps.fevers.length} fever reading${temps.fevers.length === 1 ? '' : 's'} (fever: ${TEMP_RANGE[tempUnit].fever} ${u} or higher)`, 15, y);
+    y += 8;
+    const tcw = [60, 35, 25, W - 30 - 120];
+    let tx = 15;
+    doc.setFillColor(61,43,31);
+    ['Date & time', 'Temperature', 'Fever', 'Notes'].forEach((h, i) => {
+      doc.rect(tx, y-4, tcw[i], 10, 'F');
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+      doc.text(h, tx+2, y+3); tx += tcw[i];
+    });
+    y += 12;
+    temps.readings.slice(-12).reverse().forEach((l, ri) => {
+      if (y > 275) { doc.addPage(); y = 20; }
+      tx = 15;
+      if (ri % 2 === 0) { doc.setFillColor(248,245,240); doc.rect(15, y-4, W-30, 10, 'F'); }
+      const fever = isFeverReading(l);
+      const notes = stripEmoji((l.detail || '').split(' · ').slice(1).filter(x => x !== 'Fever').join(' · ')).slice(0, 40);
+      [fmtWhen(l.time), tempOf(l).toFixed(1) + ' ' + u, fever ? 'Yes' : '', notes].forEach((v, i) => {
+        doc.setFont('helvetica', i === 2 && fever ? 'bold' : 'normal');
+        if (i === 2 && fever) doc.setTextColor(201,74,59); else doc.setTextColor(61,43,31);
+        doc.text(String(v), tx+2, y+3); tx += tcw[i];
+      });
+      y += 12;
+    });
+  }
+
   // Footer
   doc.setFontSize(9); doc.setTextColor(196,121,90);
-  doc.text('Generated by Lumaby Baby Tracker · bloom-app.com', W/2, 287, { align:'center' });
+  doc.text('Generated by Lumaby Baby Tracker · lumabyy.netlify.app', W/2, 287, { align:'center' });
 
   const fname = (profile?.baby||'baby').toLowerCase().replace(/\s+/g,'-') + '-pedi-report.pdf';
   doc.save(fname);
@@ -5436,7 +5624,7 @@ async function generatePDF(forPrint = false) {
     if (!window.jspdf) {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
         script.onload = resolve;
         script.onerror = reject;
         document.head.appendChild(script);
@@ -5694,7 +5882,7 @@ async function generatePDF(forPrint = false) {
     doc.text('Made with love', W/2, H/2 + 10, { align:'center' });
     doc.setFontSize(12); doc.setFont('helvetica','normal'); doc.setTextColor(138,112,96);
     doc.text('Tracked with Lumaby Baby Tracker', W/2, H/2 + 24, { align:'center' });
-    doc.text('bloom-app.com', W/2, H/2 + 36, { align:'center' });
+    doc.text('lumabyy.netlify.app', W/2, H/2 + 36, { align:'center' });
 
     await step(4, 'Generating your PDF...');
 
