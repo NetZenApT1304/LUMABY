@@ -2,7 +2,7 @@
 // Bump APP_VERSION on every deploy that changes precached files so old
 // caches are deleted on activate.
 
-const APP_VERSION = '1.0.3';
+const APP_VERSION = '1.0.4';
 const CACHE_NAME = `lumaby-v${APP_VERSION}`;
 const OFFLINE_URL = '/index.html';
 
@@ -69,6 +69,15 @@ self.addEventListener('fetch', event => {
   // Skip non-GET and browser extension requests
   if (event.request.method !== 'GET') return;
   if (!event.request.url.startsWith('http')) return;
+
+  // Only handle the app's own static files and the font/library CDNs.
+  // Everything else (Supabase database and auth, Netlify functions, Lemon
+  // Squeezy) must always go to the network: caching it served stale data,
+  // e.g. an old "no subscription" answer after someone had paid.
+  const url = new URL(event.request.url);
+  const sameOrigin = url.origin === self.location.origin;
+  if (sameOrigin && url.pathname.startsWith('/.netlify/')) return;
+  if (!sameOrigin && !isCDNRequest(event.request.url)) return;
 
   // For navigation requests (HTML pages), use network-first
   if (event.request.mode === 'navigate') {

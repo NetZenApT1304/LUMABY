@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://pduixzudfizustabthwu.supabase.co https://lumaby.lemonsqueezy.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src 'self' https://pduixzudfizustabthwu.supabase.co https://lumabyy.netlify.app;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://pduixzudfizustabthwu.supabase.co https://lumaby.lemonsqueezy.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src 'self' https://pduixzudfizustabthwu.supabase.co wss://pduixzudfizustabthwu.supabase.co https://lumabyy.netlify.app;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Lumaby — Baby Tracker</title>
 
@@ -1317,13 +1317,11 @@ const STORE = {
 };
 
 let profile = STORE.get('profile') || null;
-let syncDirty = false; // Track if data needs syncing
 let logs = STORE.get('logs') || [];
 let growthLogs = STORE.get('growthLogs') || [];
 let activeTimers = STORE.get('activeTimers') || {};
 
-function saveLogs() {
-  syncDirty = true; STORE.set('logs', logs); }
+function saveLogs() { STORE.set('logs', logs); }
 function saveGrowth() { STORE.set('growthLogs', growthLogs); }
 function saveTimers() { STORE.set('activeTimers', activeTimers); }
 function saveProfile() { STORE.set('profile', profile); }
@@ -2581,6 +2579,7 @@ async function loadPremiumStatus() {
       .eq('user_id', currentUser.id)
       .maybeSingle();
 
+    if (error) console.warn('[Lumaby] Premium check failed:', error.message || error);
     if (error || !data) { isPremium = false; return; }
 
     // 'cancelled' means the subscription won't renew; premium lasts until expires_at.
@@ -2622,27 +2621,6 @@ async function saveProfileToSupabase() {
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
   } catch(e) { console.warn('[Lumaby] Profile sync failed:', e); }
-}
-
-// Sync logs to Supabase (premium only)
-async function syncLogsToSupabase() {
-  if (!supabaseClient || !currentUser || !isPremium) return;
-  if (!syncDirty) return; // Skip if nothing changed
-  syncDirty = false; // Reset flag
-  try {
-    const toSync = logs.filter(l => !l.synced).slice(0, 50);
-    if (toSync.length === 0) return;
-    const rows = toSync.map(l => ({
-      id: l.id, user_id: currentUser.id,
-      type: l.type, icon: l.icon, title: l.title,
-      detail: l.detail, logged_at: l.time, data: JSON.stringify(l)
-    }));
-    const { error } = await supabaseClient.from('logs').upsert(rows, { onConflict: 'id' });
-    if (!error) {
-      toSync.forEach(l => { l.synced = true; });
-      saveLogs();
-    }
-  } catch(e) { console.warn('[Lumaby] Log sync failed:', e); }
 }
 
 // =======================================
@@ -2774,7 +2752,18 @@ function checkPaymentReturn() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('upgraded') === 'true') {
     showToast('🎉 Welcome to Lumaby Premium!');
-    loadPremiumStatus().then(() => applyPremiumGates());
+    // The webhook can land a few seconds after the redirect, and the session
+    // may still be restoring, so keep checking for a little while.
+    let tries = 0;
+    const poll = async () => {
+      if (currentUser) {
+        await loadPremiumStatus();
+        applyPremiumGates();
+        if (isPremium) { startSync(); return; }
+      }
+      if (++tries < 12) setTimeout(poll, 3000);
+    };
+    setTimeout(poll, 2000);
     window.history.replaceState({}, '', window.location.pathname);
   } else if (params.get('upgraded') === 'false') {
     showToast('Checkout cancelled.');
@@ -2927,8 +2916,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Listen for auth state changes (e.g. OAuth redirect)
     supabaseClient.auth.onAuthStateChange((event, session) => {
+      // Never await Supabase calls inside this callback: supabase-js holds its
+      // auth lock while it runs, so queries made here would wait forever.
       if (event === 'SIGNED_IN' && session?.user && !currentUser) {
-        handleAuthSuccess(session.user);
+        setTimeout(() => handleAuthSuccess(session.user), 0);
       }
     });
   } else {
@@ -2962,10 +2953,323 @@ showProfileModal = function() {
   }
 };
 
-// Auto-sync logs every 2 minutes if premium
-setInterval(() => {
-  if (isPremium && currentUser) syncLogsToSupabase();
-}, 120000);
+// =======================================
+//  TWO-WAY SYNC (Premium)
+//  Local-first: the app keeps working from localStorage, and every change
+//  is queued and pushed to Supabase. Changes from other devices are pulled
+//  on start, on focus, every minute, and live through Supabase Realtime.
+//  The newest edit (updatedAt) wins when two devices change the same item.
+//  Deletions sync as tombstones (deleted = true).
+// =======================================
+const SYNC_TABLES = {
+  babies: {
+    table: 'babies',
+    get: () => babies, set: v => { babies = v; },
+    persist: () => STORE.set('babies', babies),
+    columns: b => ({ name: b.baby || null, dob: b.dob || null, emoji: b.emoji || null }),
+  },
+  logs: {
+    table: 'logs',
+    get: () => logs, set: v => { logs = v; },
+    persist: () => STORE.set('logs', logs),
+    columns: l => ({ type: l.type || null, icon: l.icon || null, title: l.title || null, detail: l.detail || null,
+                     logged_at: l.time || null, baby_id: l.babyId || null }),
+    sort: arr => arr.sort((a, b) => new Date(b.time) - new Date(a.time)),
+  },
+  growth: {
+    table: 'growth_logs',
+    get: () => growthLogs, set: v => { growthLogs = v; },
+    persist: () => STORE.set('growthLogs', growthLogs),
+    columns: g => ({ log_date: g.date || null, weight_lbs: g.weight || null, height_in: g.heightIn || null,
+                     head_cm: g.head || null, notes: g.notes || null, baby_id: g.babyId || null }),
+    sort: arr => arr.sort((a, b) => (a.date || '').localeCompare(b.date || '')),
+  },
+};
+const SYNC_KEYS = Object.keys(SYNC_TABLES);
+const SYNC_PAGE = 1000;
+const SYNC_OVERLAP_MS = 30000; // re-read a little before the cursor to catch late commits
+
+function freshSyncState(owner) {
+  const s = { owner: owner || null, cursor: {}, known: {}, outbox: {}, tombs: {} };
+  SYNC_KEYS.forEach(k => { s.known[k] = {}; s.outbox[k] = []; s.tombs[k] = {}; });
+  return s;
+}
+let syncState = STORE.get('syncState') || freshSyncState();
+SYNC_KEYS.forEach(k => {
+  syncState.known[k] = syncState.known[k] || {}; syncState.outbox[k] = syncState.outbox[k] || [];
+  syncState.tombs[k] = syncState.tombs[k] || {}; syncState.cursor = syncState.cursor || {};
+});
+function saveSyncState() { STORE.set('syncState', syncState); }
+
+let syncChannel = null, syncRunning = false, syncAgain = false, syncPushTimer = null, syncRenderTimer = null;
+
+function syncEnabled() { return !!(supabaseClient && currentUser && isPremium); }
+
+// What gets stored remotely: the item minus local-only fields.
+function syncPayload(item) {
+  const { updatedAt, synced, ...rest } = item;
+  return rest;
+}
+function syncHash(item) {
+  const s = JSON.stringify(syncPayload(item));
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return String(h >>> 0);
+}
+function queueOutbox(key, id) {
+  const box = syncState.outbox[key];
+  if (!box.includes(id)) box.push(id);
+}
+function dropOutbox(key, id) {
+  syncState.outbox[key] = syncState.outbox[key].filter(x => x !== id);
+  delete syncState.tombs[key][id];
+}
+
+// Compare the local collection with what was last synced/queued and queue
+// every added, changed or removed item. Runs after each local save.
+function detectLocalChanges(key) {
+  const cfg = SYNC_TABLES[key], known = syncState.known[key];
+  const items = cfg.get() || [];
+  const now = new Date().toISOString();
+  const seen = new Set();
+  let touched = false;
+  items.forEach(item => {
+    if (!item.id) { item.id = uid(); touched = true; }
+    seen.add(item.id);
+    const h = syncHash(item);
+    if (known[item.id] !== h) {
+      item.updatedAt = now; known[item.id] = h; queueOutbox(key, item.id); touched = true;
+    }
+  });
+  Object.keys(known).forEach(id => {
+    if (!seen.has(id)) { delete known[id]; syncState.tombs[key][id] = now; queueOutbox(key, id); touched = true; }
+  });
+  if (touched) { cfg.persist(); saveSyncState(); }
+  return touched;
+}
+
+// Apply one row from Supabase to the local collection. Returns true if the
+// local data changed.
+function applyRemoteRow(key, row) {
+  const cfg = SYNC_TABLES[key];
+  const items = cfg.get() || [];
+  const idx = items.findIndex(i => i.id === row.id);
+  const local = idx >= 0 ? items[idx] : null;
+  if (syncState.outbox[key].includes(row.id)) {
+    const localTime = local ? local.updatedAt : syncState.tombs[key][row.id];
+    if (localTime && Date.parse(localTime) > Date.parse(row.updated_at)) return false; // local edit is newer; it will be pushed
+  }
+  if (row.deleted) {
+    dropOutbox(key, row.id);
+    delete syncState.known[key][row.id];
+    if (idx < 0) return false;
+    items.splice(idx, 1);
+    return true;
+  }
+  const item = { ...(row.data || {}), id: row.id, updatedAt: row.updated_at };
+  delete item.synced;
+  const h = syncHash(item);
+  dropOutbox(key, row.id);
+  syncState.known[key][row.id] = h;
+  if (local && syncHash(local) === h) { local.updatedAt = row.updated_at; return false; }
+  if (idx >= 0) items[idx] = item; else items.push(item);
+  return true;
+}
+
+async function pullTable(key) {
+  const cfg = SYNC_TABLES[key];
+  let since = syncState.cursor[key] ? new Date(Date.parse(syncState.cursor[key]) - SYNC_OVERLAP_MS).toISOString() : null;
+  let changed = false;
+  for (;;) {
+    let q = supabaseClient.from(cfg.table)
+      .select('id, data, updated_at, deleted, synced_at')
+      .eq('user_id', currentUser.id)
+      .order('synced_at', { ascending: true })
+      .limit(SYNC_PAGE);
+    if (since) q = q.gt('synced_at', since);
+    const { data, error } = await q;
+    if (error) throw error;
+    data.forEach(row => {
+      if (applyRemoteRow(key, row)) changed = true;
+      if (!syncState.cursor[key] || Date.parse(row.synced_at) > Date.parse(syncState.cursor[key])) syncState.cursor[key] = row.synced_at;
+    });
+    if (data.length < SYNC_PAGE) break;
+    since = data[data.length - 1].synced_at;
+  }
+  if (changed) { if (cfg.sort) cfg.sort(cfg.get()); cfg.persist(); }
+  return changed;
+}
+
+async function pushTable(key) {
+  const cfg = SYNC_TABLES[key];
+  const ids = [...syncState.outbox[key]];
+  if (!ids.length) return;
+  const items = cfg.get() || [];
+  const emptyCols = cfg.columns({});
+  const rows = ids.map(id => {
+    const item = items.find(i => i.id === id);
+    if (item) {
+      return { id, user_id: currentUser.id, data: syncPayload(item), deleted: false,
+               updated_at: item.updatedAt || new Date().toISOString(), ...cfg.columns(item) };
+    }
+    return { id, user_id: currentUser.id, data: null, deleted: true,
+             updated_at: syncState.tombs[key][id] || new Date().toISOString(), ...emptyCols };
+  });
+  for (let i = 0; i < rows.length; i += 200) {
+    const chunk = rows.slice(i, i + 200);
+    const { error } = await supabaseClient.from(cfg.table).upsert(chunk, { onConflict: 'id' });
+    if (error) throw error;
+    chunk.forEach(r => dropOutbox(key, r.id));
+    saveSyncState();
+  }
+}
+
+function syncPending() { return SYNC_KEYS.reduce((n, k) => n + syncState.outbox[k].length, 0); }
+
+// Pull everything new, then push local changes. Safe to call any time.
+async function syncNow() {
+  if (!syncEnabled()) return false;
+  if (syncRunning) { syncAgain = true; return false; }
+  syncRunning = true;
+  let changed = false;
+  try {
+    for (const key of SYNC_KEYS) detectLocalChanges(key);
+    for (const key of SYNC_KEYS) if (await pullTable(key)) changed = true;
+    for (const key of SYNC_KEYS) await pushTable(key);
+    saveSyncState();
+  } catch (e) {
+    console.warn('[Lumaby] Sync failed, will retry:', e.message || e);
+  } finally {
+    syncRunning = false;
+  }
+  if (changed) afterRemoteChange();
+  if (syncAgain) { syncAgain = false; return syncNow(); }
+  return changed;
+}
+
+function schedulePush() {
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(syncNow, 1500);
+}
+
+// Keep profile/active baby consistent and redraw after remote changes.
+function afterRemoteChange() {
+  if (babies.length) {
+    const i = profile?.id ? babies.findIndex(b => b.id === profile.id) : -1;
+    activeBabyIndex = i >= 0 ? i : Math.min(activeBabyIndex, babies.length - 1);
+    profile = babies[activeBabyIndex];
+    STORE.set('activeBabyIndex', activeBabyIndex); saveProfile();
+  }
+  clearTimeout(syncRenderTimer);
+  syncRenderTimer = setTimeout(() => {
+    if (document.getElementById('mainApp')?.style.display === 'none') return;
+    const safe = fn => { try { if (typeof fn === 'function') fn(); } catch (e) { console.warn('[Lumaby] Render after sync:', e); } };
+    safe(updateHeader); safe(renderBabySwitcher); safe(renderTimeline); safe(renderStats); safe(renderMilestoneBanner);
+    const active = document.querySelector('.screen.active')?.id;
+    if (active === 'screen-insights') safe(renderInsights);
+    if (active === 'screen-schedule') safe(renderSchedule);
+    if (active === 'screen-growth') safe(renderGrowth);
+  }, 150);
+}
+
+function subscribeRealtime() {
+  if (syncChannel || !syncEnabled()) return;
+  syncChannel = supabaseClient.channel('lumaby-sync-' + currentUser.id);
+  SYNC_KEYS.forEach(key => {
+    syncChannel.on('postgres_changes',
+      { event: '*', schema: 'public', table: SYNC_TABLES[key].table, filter: `user_id=eq.${currentUser.id}` },
+      payload => {
+        if (!payload.new || !payload.new.id) return;
+        if (applyRemoteRow(key, payload.new)) {
+          const cfg = SYNC_TABLES[key];
+          if (cfg.sort) cfg.sort(cfg.get());
+          cfg.persist(); saveSyncState(); afterRemoteChange();
+        } else {
+          saveSyncState();
+        }
+      });
+  });
+  syncChannel.subscribe();
+}
+
+function unsubscribeRealtime() {
+  if (syncChannel) { try { supabaseClient.removeChannel(syncChannel); } catch (e) {} syncChannel = null; }
+}
+
+function clearLocalAccountData() {
+  ['logs', 'growthLogs', 'babies', 'activeBabyIndex', 'profile', 'syncState', 'partnerData'].forEach(k => STORE.del(k));
+  logs = []; growthLogs = []; babies = []; activeBabyIndex = 0; profile = null;
+  syncState = freshSyncState();
+}
+
+// Start syncing for the signed-in Premium user. Returns after the first pull,
+// so callers can wait for the user's data before showing the app.
+async function startSync() {
+  if (!syncEnabled()) return;
+  if (syncState.owner && syncState.owner !== currentUser.id) {
+    // Data on this device belongs to another account that synced it; it is
+    // safe in that account, so don't mix it into this one.
+    clearLocalAccountData();
+  }
+  if (!syncState.owner) { syncState.owner = currentUser.id; saveSyncState(); }
+  await syncNow();
+  subscribeRealtime();
+}
+
+function stopSync() {
+  unsubscribeRealtime();
+  clearTimeout(syncPushTimer);
+}
+
+// Hook the existing save functions so every local change is queued.
+const _syncOrigSaveLogs = saveLogs;
+saveLogs = function () { _syncOrigSaveLogs(); if (syncEnabled()) { detectLocalChanges('logs'); schedulePush(); } };
+const _syncOrigSaveGrowth = saveGrowth;
+saveGrowth = function () { _syncOrigSaveGrowth(); if (syncEnabled()) { detectLocalChanges('growth'); schedulePush(); } };
+const _syncOrigSaveBabies = saveBabies;
+saveBabies = function () { _syncOrigSaveBabies(); if (syncEnabled()) { detectLocalChanges('babies'); schedulePush(); } };
+
+// Signing in: load premium status, then pull the account's data before the
+// app decides between onboarding and the main screen (so a new device gets
+// the existing babies instead of creating a duplicate).
+let authHandledFor = null;
+handleAuthSuccess = async function (user) {
+  // getSession() and the SIGNED_IN event can both report the same sign-in.
+  if (authHandledFor === user.id) return;
+  authHandledFor = user.id;
+  currentUser = user;
+  document.getElementById('auth-screen').classList.remove('visible');
+  await loadPremiumStatus();
+  if (isPremium) {
+    await startSync();
+    if (!profile && babies.length) { profile = babies[Math.min(activeBabyIndex, babies.length - 1)]; saveProfile(); }
+  }
+  await syncProfile();
+  if (!profile) {
+    document.getElementById('onboarding').classList.remove('hidden');
+  } else {
+    launchApp();
+  }
+};
+
+// Signing out: push what's left, then remove synced data from this device.
+const _syncOrigSignOut = signOut;
+signOut = async function () {
+  const wasSyncing = syncEnabled() && syncState.owner === currentUser?.id;
+  if (wasSyncing) {
+    await syncNow();
+    if (syncPending() > 0 &&
+        !confirm('Some changes haven\'t synced yet (you may be offline). Sign out anyway and lose them on this device?')) return;
+  }
+  stopSync();
+  authHandledFor = null;
+  await _syncOrigSignOut();
+  if (wasSyncing) { clearLocalAccountData(); location.reload(); }
+};
+
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncNow(); });
+window.addEventListener('online', () => syncNow());
+setInterval(() => { if (syncEnabled()) syncNow(); }, 60000);
 
 // =======================================
 //  PWA ? Service Worker Registration
@@ -4608,6 +4912,7 @@ function scheduleReminders() {
       const prevStatus = isPremium;
       await loadPremiumStatus();
       if (prevStatus !== isPremium) {
+        if (isPremium) startSync(); else stopSync();
         applyPremiumGates();
         console.warn('[Lumaby] Premium status refreshed');
       }
