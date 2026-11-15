@@ -78,6 +78,34 @@ async function findUserIdBySubscription(lsSubscriptionId) {
   return res.data?.user_id || null;
 }
 
+// Same rule the app uses to decide whether a user has Premium.
+function grantsPremium(status, expiresAt) {
+  const notExpired = !expiresAt || new Date(expiresAt) > new Date();
+  if (status === 'active' || status === 'trialing') return notExpired;
+  if (status === 'cancelled') return !!expiresAt && notExpired;
+  return false;
+}
+
+async function getCurrentSubscription(userId) {
+  const res = await supabase
+    .from('subscriptions')
+    .select('ls_subscription_id, status, expires_at')
+    .eq('user_id', userId)
+    .maybeSingle();
+  check(res, 'Lookup of current subscription failed');
+  return res.data || null;
+}
+
+// Each user has one subscription row. An event about a *different*
+// subscription than the one on file must not take Premium away while the
+// one on file still grants it, e.g. an old monthly plan expiring after the
+// user has switched to yearly.
+function isStaleEvent(current, lsSubscriptionId, incomingGrantsPremium) {
+  if (!current || !current.ls_subscription_id) return false;
+  if (current.ls_subscription_id === lsSubscriptionId) return false;
+  return grantsPremium(current.status, current.expires_at) && !incomingGrantsPremium;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method not allowed' };
@@ -144,6 +172,13 @@ exports.handler = async (event) => {
       // period) or expired; while it renews normally it is null.
       const endsAt = attrs.ends_at || null;
 
+      const current = await getCurrentSubscription(userId);
+      if (isStaleEvent(current, lsSubscriptionId, grantsPremium(status, endsAt))) {
+        console.log('[Lumaby] Ignored', eventName, 'for old subscription', lsSubscriptionId,
+          '- user has active subscription', current.ls_subscription_id);
+        return json(200, { received: true, ignored: 'stale_subscription' });
+      }
+
       const res = await supabase.from('subscriptions').upsert({
         user_id: userId,
         ls_subscription_id: lsSubscriptionId,
@@ -162,6 +197,16 @@ exports.handler = async (event) => {
       // Invoice events. subscription_updated follows with the full state,
       // so only the status is touched here.
       const status = eventName === 'subscription_payment_success' ? 'active' : 'past_due';
+
+      // Invoice events only carry a status, so never let one for a different
+      // subscription replace the one on file while that one grants Premium.
+      const current = await getCurrentSubscription(userId);
+      if (isStaleEvent(current, lsSubscriptionId, false)) {
+        console.log('[Lumaby] Ignored', eventName, 'for old subscription', lsSubscriptionId,
+          '- user has active subscription', current.ls_subscription_id);
+        return json(200, { received: true, ignored: 'stale_subscription' });
+      }
+
       const res = await supabase.from('subscriptions').upsert({
         user_id: userId,
         ls_subscription_id: lsSubscriptionId,
