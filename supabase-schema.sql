@@ -1,6 +1,7 @@
 -- ═══════════════════════════════════════════════════
 --  LUMABY BABY TRACKER — Supabase Database Schema
---  Run this in your Supabase dashboard → SQL Editor
+--  Run this in your Supabase dashboard → SQL Editor,
+--  then run each file in supabase/migrations/ in order.
 -- ═══════════════════════════════════════════════════
 
 -- ── 1. Profiles table ──
