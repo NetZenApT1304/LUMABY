@@ -2579,7 +2579,7 @@ async function loadPremiumStatus() {
       .from('subscriptions')
       .select('status, plan, expires_at')
       .eq('user_id', currentUser.id)
-      .single();
+      .maybeSingle();
 
     if (error || !data) { isPremium = false; return; }
 
@@ -2602,7 +2602,7 @@ async function syncProfile() {
       .from('profiles')
       .select('*')
       .eq('user_id', currentUser.id)
-      .single();
+      .maybeSingle();
     if (data) {
       profile = { parent: data.parent_name, baby: data.baby_name, dob: data.baby_dob, emoji: data.baby_emoji || '🌙' };
       saveProfile();
