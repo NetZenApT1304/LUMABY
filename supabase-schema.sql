@@ -108,6 +108,9 @@ CREATE POLICY "Users can view own subscription"
 REVOKE INSERT, UPDATE, DELETE ON subscriptions FROM authenticated;
 REVOKE INSERT, UPDATE, DELETE ON subscriptions FROM anon;
 
+-- TRUNCATE bypasses RLS; Supabase grants it by default
+REVOKE TRUNCATE ON subscriptions, profiles, logs, growth_logs FROM anon, authenticated;
+
 -- Logs: users can only read/write their own
 CREATE POLICY "Users can view own logs"
   ON logs FOR SELECT USING (auth.uid() = user_id);
