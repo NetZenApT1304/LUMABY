@@ -4,6 +4,10 @@
   publish = "."
   functions = "netlify/functions"
 
+# Push reminders: work out what's due and send notifications
+[functions."send-reminders"]
+  schedule = "*/5 * * * *"
+
 # Redirect all routes to index.html (SPA)
 [[redirects]]
   from = "/*"

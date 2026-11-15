@@ -2,7 +2,7 @@
 // Bump APP_VERSION on every deploy that changes precached files so old
 // caches are deleted on activate.
 
-const APP_VERSION = '1.0.4';
+const APP_VERSION = '1.0.5';
 const CACHE_NAME = `lumaby-v${APP_VERSION}`;
 const OFFLINE_URL = '/index.html';
 
@@ -128,34 +128,42 @@ self.addEventListener('sync', event => {
 });
 
 // ── Push Notifications ──
+// Sent by the send-reminders Netlify function: { title, body, url, tag, kind }
+const LOG_ACTION_FOR = { feed: 'feed', nap: 'sleep', meds: 'meds', bath: 'bath', growth: 'growth' };
+
 self.addEventListener('push', event => {
   if (!event.data) return;
-
-  const data = event.data.json();
+  let data = {};
+  try { data = event.data.json(); } catch (e) { data = { body: event.data.text() }; }
+  const logAction = LOG_ACTION_FOR[data.kind];
   const options = {
     body: data.body || 'Time to check on baby 🌸',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-72.png',
     vibrate: [100, 50, 100],
-    data: { url: data.url || '/' },
-    actions: [
-      { action: 'log', title: '📝 Log now' },
-      { action: 'dismiss', title: 'Dismiss' }
-    ]
+    tag: data.tag || undefined,     // a newer reminder of the same kind replaces the old one
+    renotify: !!data.tag,
+    data: { url: data.url || '/', logAction },
+    actions: logAction
+      ? [{ action: 'log', title: '📝 Log now' }, { action: 'dismiss', title: 'Dismiss' }]
+      : [],
   };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Lumaby', options)
-  );
+  event.waitUntil(self.registration.showNotification(data.title || 'Lumaby', options));
 });
 
-// Handle notification clicks
+// Tapping the notification opens (or focuses) Lumaby; "Log now" opens the
+// matching log form.
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-
-  if (event.action === 'log') {
-    event.waitUntil(
-      clients.openWindow(event.notification.data.url || '/')
-    );
-  }
+  if (event.action === 'dismiss') return;
+  const { url = '/', logAction } = event.notification.data || {};
+  const target = event.action === 'log' && logAction ? `/?action=${logAction}` : url;
+  event.waitUntil((async () => {
+    const wins = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    if (event.action !== 'log') {
+      const open = wins.find(w => new URL(w.url).origin === self.location.origin);
+      if (open) return open.focus();
+    }
+    return clients.openWindow(target);
+  })());
 });
