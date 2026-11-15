@@ -1,5 +1,5 @@
 {
-  "name": "Lumaby \u2014 Baby Tracker",
+  "name": "Lumaby — Baby Tracker",
   "short_name": "Lumaby",
   "description": "Track every precious moment with your baby. Sleep, feeds, diapers, milestones and growth in one beautiful app.",
   "start_url": "/",
@@ -64,10 +64,10 @@
   ],
   "shortcuts": [
     {
-      "name": "Log Feed",
+      "name": "Repeat last feed",
       "short_name": "Feed",
-      "description": "Quickly log a feed",
-      "url": "/?action=feed",
+      "description": "Log the same feed as last time (or start the next breast side)",
+      "url": "/?quick=feed",
       "icons": [
         {
           "src": "icons/icon-96.png",
@@ -76,10 +76,10 @@
       ]
     },
     {
-      "name": "Log Diaper",
-      "short_name": "Diaper",
-      "description": "Quickly log a diaper change",
-      "url": "/?action=diaper",
+      "name": "Wet diaper",
+      "short_name": "Wet",
+      "description": "Log a wet diaper now",
+      "url": "/?quick=diaper-wet",
       "icons": [
         {
           "src": "icons/icon-96.png",
@@ -88,10 +88,22 @@
       ]
     },
     {
-      "name": "Log Sleep",
+      "name": "Dirty diaper",
+      "short_name": "Dirty",
+      "description": "Log a dirty diaper now",
+      "url": "/?quick=diaper-dirty",
+      "icons": [
+        {
+          "src": "icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Start sleep timer",
       "short_name": "Sleep",
-      "description": "Start a sleep timer",
-      "url": "/?action=sleep",
+      "description": "Start timing a sleep now",
+      "url": "/?quick=sleep",
       "icons": [
         {
           "src": "icons/icon-96.png",
