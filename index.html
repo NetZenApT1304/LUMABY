@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://lymejwfosjqaojzgupdf.supabase.co https://lumaby.lemonsqueezy.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src 'self' https://lymejwfosjqaojzgupdf.supabase.co https://lumaby.netlify.app;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://pduixzudfizustabthwu.supabase.co https://lumaby.lemonsqueezy.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src 'self' https://pduixzudfizustabthwu.supabase.co https://lumabyy.netlify.app;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Lumaby — Baby Tracker</title>
 
@@ -1305,7 +1305,7 @@ canvas.line-chart { width: 100% !important; height: 120px !important; }
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script>
 // =======================================
 //  STATE & PERSISTENCE
@@ -2379,8 +2379,8 @@ function formatDate(str) {
 // =======================================
 const CONFIG = {
   supabase: {
-    url: 'https://lymejwfosjqaojzgupdf.supabase.co',           // e.g. https://abcxyz.supabase.co
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5bWVqd2Zvc2pxYW9qemd1cGRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMjMwNjQsImV4cCI6MjA4NzY5OTA2NH0.c-o6qMgez5YGGvWLqhnSzJoVDuGHQ0NamhM626-wi9E',  // from Supabase dashboard → Settings → API
+    url: 'https://pduixzudfizustabthwu.supabase.co',           // e.g. https://abcxyz.supabase.co
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkdWl4enVkZml6dXN0YWJ0aHd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3ODYxMjAsImV4cCI6MjA5NDM2MjEyMH0.vLd_SH9Bn33Kh1dnehtdMaHugoyThYTbNQEjoKIr2YE',  // from Supabase dashboard → Settings → API
   },
   lemonsqueezy: {
     monthlyUrl: 'https://lumaby.lemonsqueezy.com/checkout/buy/58fa4d1f-38f3-4c8a-8a9c-f18105756ed0',
@@ -2583,9 +2583,10 @@ async function loadPremiumStatus() {
 
     if (error || !data) { isPremium = false; return; }
 
-    const validStatuses = ['active', 'trialing'];
-    isPremium = validStatuses.includes(data.status) &&
-      (!data.expires_at || new Date(data.expires_at) > new Date());
+    // 'cancelled' means the subscription won't renew; premium lasts until expires_at.
+    const notExpired = !data.expires_at || new Date(data.expires_at) > new Date();
+    isPremium = (['active', 'trialing'].includes(data.status) && notExpired) ||
+      (data.status === 'cancelled' && !!data.expires_at && notExpired);
 
     console.log('[Lumaby] Premium status:', isPremium, data.status);
   } catch(e) {
