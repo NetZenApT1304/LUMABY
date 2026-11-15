@@ -1191,10 +1191,6 @@ html.night body::after {
       <div class="feature-icon">🌙</div>
       <div class="feature-text"><div class="ft-title">AI sleep coaching</div><div class="ft-sub">Personalized sleep schedule from your data</div></div>
     </div>
-    <div class="feature-row">
-      <div class="feature-icon">🔔</div>
-      <div class="feature-text"><div class="ft-title">Smart reminders</div><div class="ft-sub">Feed, nap & medicine alerts auto-scheduled</div></div>
-    </div>
 
     <br>
     <div class="upgrade-features-title">Choose your plan</div>
@@ -2538,17 +2534,20 @@ function renderSchedule() {
   const now = new Date();
 
   // Predict next events from recent patterns
-  const recentFeeds = logs.filter(l=>l.type==='feed').slice(0,5);
+  const recentFeeds = logs.filter(l=>l.type==='feed').slice(0,8);
   const recentSleeps = logs.filter(l=>l.type==='sleep').slice(0,5);
 
+  // Same rule as the reminder scheduler: only gaps of 30 min to 8 h count
+  // (long overnight or missed-log gaps would make it predict a feed every
+  // 12 hours), clamped to 1-6 h, 3 h until there are two usable gaps.
   let avgFeedInterval = 3 * 3600000; // default 3h
   if (recentFeeds.length >= 2) {
     const diffs = [];
     for (let i=0; i<recentFeeds.length-1; i++) {
       const d = new Date(recentFeeds[i].time) - new Date(recentFeeds[i+1].time);
-      if (d > 0) diffs.push(d);
+      if (d >= 30 * 60000 && d <= 8 * 3600000) diffs.push(d);
     }
-    if (diffs.length) avgFeedInterval = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+    if (diffs.length >= 2) avgFeedInterval = Math.min(6 * 3600000, Math.max(3600000, diffs.slice(0, 5).reduce((a,b)=>a+b,0)/Math.min(diffs.length, 5)));
   }
 
   const lastFeed = recentFeeds[0] ? new Date(recentFeeds[0].time) : now;
@@ -5096,7 +5095,12 @@ function showSleepCoach() {
   const insights = [];
   if (avgWakeUps > 2) insights.push({ icon: '🌙', title: 'Frequent night wakings', tip: 'Try a consistent bedtime routine — bath, feed, song — starting 30 min before sleep. Consistency signals to baby that night is different from naps.' });
   if (avgDuration < 45 && dayNaps.length > 0) insights.push({ icon: '⏰', title: 'Short nap cycles', tip: 'Naps under 45 min are often one sleep cycle. Try extending by gently soothing at the 35-40 min mark before baby fully wakes.' });
-  if (dayNaps.length > 4 && ageMonths > 3) insights.push({ icon: '☀️', title: 'Too many naps for age', tip: `At ${ageMonths} months, most babies do best with ${rec.naps} naps. Capping naps may lead to longer overnight sleep.` });
+  // Compare naps per day (not the total across all logged days) with the
+  // most naps recommended for this age.
+  const napDays = new Set(dayNaps.map(l => new Date(l.time).toDateString())).size;
+  const napsPerDay = napDays ? dayNaps.length / napDays : 0;
+  const maxRecNaps = Math.max(...String(rec.naps).split('-').map(Number));
+  if (napDays >= 3 && napsPerDay > maxRecNaps + 0.5) insights.push({ icon: '☀️', title: 'Too many naps for age', tip: `${profile?.baby || 'Baby'} is averaging ${napsPerDay.toFixed(1)} naps a day. At ${ageMonths} months, most babies do best with ${rec.naps}. Capping naps may lead to longer overnight sleep.` });
   if (avgDuration > 30 && avgWakeUps < 1) insights.push({ icon: '🏆', title: 'Great sleep patterns!', tip: `${profile?.baby || 'Baby'} is sleeping well. Keep the consistent routine going — it's working!` });
   if (insights.length === 0) insights.push({ icon: '📊', title: 'Log more sleep to get insights', tip: 'Track at least 5-7 sleep sessions to unlock personalized coaching tips.' });
 
