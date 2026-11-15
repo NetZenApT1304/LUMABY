@@ -43,14 +43,17 @@ function computeDue(input, settings, tz, now) {
   const name = input.name || 'Baby';
   const out = [];
 
-  if (s.feedEnabled && input.feeds.length) {
+  // feedMode 'auto' (default) learns from recent feed gaps; 'fixed' uses
+  // feedInterval hours. feedNight === false skips 10pm-6am.
+  if (s.feedEnabled && input.feeds.length && !(s.feedNight === false && quietNight(now, tz))) {
     const last = input.feeds[0];
     const gaps = [];
     for (let i = 0; i < Math.min(input.feeds.length - 1, 5); i++) {
       const g = input.feeds[i] - input.feeds[i + 1];
       if (g >= 30 * MIN && g <= 8 * HOUR) gaps.push(g);
     }
-    let interval = gaps.length >= 2 ? gaps.reduce((a, b) => a + b, 0) / gaps.length : (Number(s.feedInterval) || 3) * HOUR;
+    const setHours = (Number(s.feedInterval) || 3) * HOUR;
+    let interval = s.feedMode !== 'fixed' && gaps.length >= 2 ? gaps.reduce((a, b) => a + b, 0) / gaps.length : setHours;
     interval = Math.min(Math.max(interval, HOUR), 6 * HOUR);
     const due = last + interval;
     if (now >= due && now - due < 2 * HOUR) {
@@ -67,12 +70,17 @@ function computeDue(input, settings, tz, now) {
     }
   }
 
-  if (s.medsEnabled && /^\d{1,2}:\d{2}$/.test(s.medsTime || '')) {
-    const [hh, mm] = s.medsTime.split(':').map(Number);
+  // medsTimes: up to 4 daily times ("HH:MM"); older settings have medsTime.
+  if (s.medsEnabled) {
+    const times = (Array.isArray(s.medsTimes) && s.medsTimes.length ? s.medsTimes : [s.medsTime])
+      .filter(t => /^\d{1,2}:\d{2}$/.test(t || '')).slice(0, 4);
     const p = localParts(now, tz);
-    const due = zonedTime(p.y, p.m, p.d, hh, mm, tz);
-    if (now >= due && now - due < 30 * MIN) {
-      out.push({ kind: 'meds', dueKey: p.date, title: '💊 Medicine time', body: `Time for ${name}'s medicine` });
+    for (const t of [...new Set(times)]) {
+      const [hh, mm] = t.split(':').map(Number);
+      const due = zonedTime(p.y, p.m, p.d, hh, mm, tz);
+      if (now >= due && now - due < 30 * MIN) {
+        out.push({ kind: 'meds', dueKey: `${p.date} ${t}`, title: '💊 Medicine time', body: `Time for ${name}'s medicine` });
+      }
     }
   }
 
@@ -91,6 +99,7 @@ function computeDue(input, settings, tz, now) {
   }
   return out;
 }
+function quietNight(now, tz) { const h = localParts(now, tz).h; return h >= 22 || h < 6; }
 // Naps are a daytime thing; no nap pings overnight.
 function daytimeNap(now, tz) { const h = localParts(now, tz).h; return h >= 7 && h < 20; }
 

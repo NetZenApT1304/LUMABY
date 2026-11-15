@@ -473,6 +473,12 @@ body::after {
 .reminder-info { flex: 1; }
 .reminder-label { font-size: 14px; font-weight: 500; color: var(--text); }
 .reminder-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+.reminder-options { padding: 0 0 14px 48px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid rgba(61,43,31,0.06); }
+.reminder-select { padding: 9px 12px; font-size: 14px; width: 100%; }
+.reminder-time-row { display: flex; gap: 10px; align-items: center; }
+.reminder-time-row .reminder-select { flex: 1; }
+.reminder-check { font-size: 13px; color: var(--text); display: flex; gap: 8px; align-items: center; }
+.reminder-link { background: none; border: none; color: var(--terracotta); font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0; text-align: left; }
 .toggle-switch {
   position: relative; width: 44px; height: 24px; flex-shrink: 0;
 }
@@ -3949,42 +3955,122 @@ function renderPercentileChart(canvasId, ageMonths) {
 // =====================================================
 //  SMART REMINDERS
 // =====================================================
-let reminders = STORE.get('reminders') || {
-  feedEnabled: true, feedInterval: 3,
+const REMINDER_DEFAULTS = {
+  feedEnabled: true, feedMode: 'auto', feedInterval: 3, feedNight: true,
   napEnabled: true, napWindow: 2,
-  medsEnabled: false, medsTime: '08:00',
+  medsEnabled: false, medsTimes: ['08:00'],
   bathEnabled: false, bathDays: 2,
   growthEnabled: true, growthWeeks: 4,
 };
+const storedReminders = STORE.get('reminders') || {};
+let reminders = { ...REMINDER_DEFAULTS, ...storedReminders };
+// older settings had a single medsTime
+if (!Array.isArray(storedReminders.medsTimes) || !storedReminders.medsTimes.length) {
+  reminders.medsTimes = [storedReminders.medsTime || '08:00'];
+}
+delete reminders.medsTime;
 function saveReminders() { STORE.set('reminders', reminders); }
+
+function fmtHours(h) {
+  h = Number(h);
+  if (h < 1) return `${Math.round(h * 60)} min`;
+  const whole = Math.floor(h), half = h - whole >= 0.5;
+  return `${whole}${half ? '½' : ''} h`;
+}
+function fmtTime12(t) {
+  const [hh, mm] = (t || '08:00').split(':').map(Number);
+  return `${((hh + 11) % 12) + 1}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'AM' : 'PM'}`;
+}
+function selectHtml(onchange, value, options) {
+  return `<select class="form-input reminder-select" onchange="${onchange}">` +
+    options.map(([v, label]) => `<option value="${v}" ${String(v) === String(value) ? 'selected' : ''}>${label}</option>`).join('') +
+    '</select>';
+}
+
+// Change one setting, save it (locally and to the server) and redraw.
+function setReminder(key, value) {
+  reminders[key] = value;
+  saveReminders();
+  renderRemindersBody();
+}
+function setMedsTime(i, value) {
+  if (!/^\d{2}:\d{2}$/.test(value)) return;
+  reminders.medsTimes[i] = value;
+  reminders.medsTimes.sort();
+  saveReminders();
+  renderRemindersBody();
+}
+function addMedsTime() {
+  if (reminders.medsTimes.length >= 4) return;
+  // Suggest a time that isn't taken: 12h after the last one, else 6h, 4h...
+  const last = reminders.medsTimes[reminders.medsTimes.length - 1] || '08:00';
+  const shift = h => String((Number(last.slice(0, 2)) + h) % 24).padStart(2, '0') + last.slice(2);
+  const next = [12, 6, 4, 8, 3, 9, 2, 10, 1, 11].map(shift).find(t => !reminders.medsTimes.includes(t));
+  if (!next) return;
+  setReminder('medsTimes', [...reminders.medsTimes, next].sort());
+}
+function removeMedsTime(i) {
+  if (reminders.medsTimes.length <= 1) return;
+  setReminder('medsTimes', reminders.medsTimes.filter((_, j) => j !== i));
+}
 
 function showRemindersModal() {
   if (!isPremium) { openModal('modal-upgrade'); return; }
+  renderRemindersBody();
+  openModal('modal-reminders');
+}
+
+function renderRemindersBody() {
   const body = document.getElementById('reminders-modal-body');
+  if (!body) return;
+  const r = reminders;
+  const hours = (list) => list.map(h => [h, fmtHours(h)]);
+
+  const feedSub = r.feedMode === 'fixed'
+    ? `Every ${fmtHours(r.feedInterval)} after the last feed`
+    : 'When the next feed is due, based on your recent feeds';
+  const feedOptions = `
+    ${selectHtml("setReminder('feedMode', this.value === 'auto' ? 'auto' : 'fixed'); if (this.value !== 'auto') setReminder('feedInterval', Number(this.value))",
+      r.feedMode === 'fixed' ? r.feedInterval : 'auto',
+      [['auto', 'Learn from my logs'], ...hours([1.5, 2, 2.5, 3, 3.5, 4, 5, 6]).map(([v, l]) => [v, 'Every ' + l])])}
+    <label class="reminder-check"><input type="checkbox" ${r.feedNight !== false ? 'checked' : ''}
+      onchange="setReminder('feedNight', this.checked)"/> Remind me overnight (10pm–6am)</label>`;
+
+  const napOptions = selectHtml("setReminder('napWindow', Number(this.value))", r.napWindow,
+    hours([0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 3.5, 4]).map(([v, l]) => [v, l + ' awake']));
+
+  const medsOptions = `
+    ${r.medsTimes.map((t, i) => `
+      <div class="reminder-time-row">
+        <input type="time" class="form-input reminder-select" value="${t}" onchange="setMedsTime(${i}, this.value)"/>
+        ${r.medsTimes.length > 1 ? `<button class="reminder-link" onclick="removeMedsTime(${i})" aria-label="Remove ${fmtTime12(t)}">Remove</button>` : ''}
+      </div>`).join('')}
+    ${r.medsTimes.length < 4 ? '<button class="reminder-link" onclick="addMedsTime()">+ Add another time</button>' : ''}`;
+
+  const bathOptions = selectHtml("setReminder('bathDays', Number(this.value))", r.bathDays,
+    [1, 2, 3, 4, 5, 6, 7].map(d => [d, d === 1 ? 'Every day' : `Every ${d} days`]));
+  const growthOptions = selectHtml("setReminder('growthWeeks', Number(this.value))", r.growthWeeks,
+    [1, 2, 3, 4, 6, 8].map(w => [w, w === 1 ? 'Every week' : `Every ${w} weeks`]));
+
   body.innerHTML = `
     <p style="font-size:13px;color:var(--text-light);margin-bottom:20px;line-height:1.6">
-      Lumaby learns from your logs and reminds you at the right times, even when the app is closed.
+      Lumaby reminds you at the right times, even when the app is closed.
       ${(typeof Notification !== 'undefined' && Notification.permission === 'granted') ? '<br><strong>🔔 Notifications are on for this device.</strong>' : ''}
     </p>
     <div class="reminders-card">
-      ${renderReminderRow('feedEnabled', '🍼', 'Feed reminder',
-        `Alert after ${reminders.feedInterval}h average interval`)}
-      ${renderReminderRow('napEnabled', '😴', 'Nap reminder',
-        `Alert after ${reminders.napWindow}h awake window`)}
-      ${renderReminderRow('medsEnabled', '💊', 'Medicine reminder',
-        `Daily at ${reminders.medsTime}`)}
-      ${renderReminderRow('bathEnabled', '🛁', 'Bath reminder',
-        `Every ${reminders.bathDays} days`)}
-      ${renderReminderRow('growthEnabled', '📏', 'Growth check',
-        `Every ${reminders.growthWeeks} weeks`)}
+      ${renderReminderRow('feedEnabled', '🍼', 'Feed reminder', feedSub, feedOptions)}
+      ${renderReminderRow('napEnabled', '😴', 'Nap reminder', `After ${fmtHours(r.napWindow)} awake (7am–8pm)`, napOptions)}
+      ${renderReminderRow('medsEnabled', '💊', 'Medicine reminder', 'Daily at ' + r.medsTimes.map(fmtTime12).join(', '), medsOptions)}
+      ${renderReminderRow('bathEnabled', '🛁', 'Bath reminder', r.bathDays === 1 ? 'Every day' : `Every ${r.bathDays} days`, bathOptions)}
+      ${renderReminderRow('growthEnabled', '📏', 'Growth check', r.growthWeeks === 1 ? 'Every week' : `Every ${r.growthWeeks} weeks`, growthOptions)}
     </div>
     <button class="btn-primary btn-full" onclick="saveAndScheduleReminders()">
       Save & Enable Reminders
     </button>`;
-  openModal('modal-reminders');
 }
 
-function renderReminderRow(key, icon, label, sub) {
+function renderReminderRow(key, icon, label, sub, options) {
+  const on = !!reminders[key];
   return `
     <div class="reminder-row">
       <div class="reminder-icon">${icon}</div>
@@ -3993,11 +4079,12 @@ function renderReminderRow(key, icon, label, sub) {
         <div class="reminder-sub">${sub}</div>
       </div>
       <label class="toggle-switch">
-        <input type="checkbox" ${reminders[key] ? 'checked' : ''}
-          onchange="reminders['${key}']=this.checked;saveReminders()"/>
+        <input type="checkbox" ${on ? 'checked' : ''} aria-label="${label}"
+          onchange="setReminder('${key}', this.checked)"/>
         <span class="toggle-slider"></span>
       </label>
-    </div>`;
+    </div>
+    ${on && options ? `<div class="reminder-options">${options}</div>` : ''}`;
 }
 
 // Reminders are sent by the server as push notifications (Netlify
