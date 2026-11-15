@@ -196,8 +196,6 @@ exports.handler = async (event) => {
     } else {
       // Invoice events. subscription_updated follows with the full state,
       // so only the status is touched here.
-      const status = eventName === 'subscription_payment_success' ? 'active' : 'past_due';
-
       // Invoice events only carry a status, so never let one for a different
       // subscription replace the one on file while that one grants Premium.
       const current = await getCurrentSubscription(userId);
@@ -205,6 +203,19 @@ exports.handler = async (event) => {
         console.log('[Lumaby] Ignored', eventName, 'for old subscription', lsSubscriptionId,
           '- user has active subscription', current.ls_subscription_id);
         return json(200, { received: true, ignored: 'stale_subscription' });
+      }
+
+      // A successful payment only changes the status when it recovers a
+      // failed one. Otherwise it would mark trials as active: Lemon Squeezy
+      // sends payment_success for the $0 invoice that starts a trial.
+      let status;
+      if (eventName === 'subscription_payment_failed') {
+        status = 'past_due';
+      } else if (current && ['past_due', 'unpaid'].includes(current.status)) {
+        status = 'active';
+      } else {
+        console.log('[Lumaby] Payment success, status unchanged for user:', userId);
+        return json(200, { received: true });
       }
 
       const res = await supabase.from('subscriptions').upsert({
