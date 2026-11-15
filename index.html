@@ -1305,7 +1305,7 @@ canvas.line-chart { width: 100% !important; height: 120px !important; }
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script>
 // =======================================
 //  STATE & PERSISTENCE
@@ -2583,9 +2583,10 @@ async function loadPremiumStatus() {
 
     if (error || !data) { isPremium = false; return; }
 
-    const validStatuses = ['active', 'trialing'];
-    isPremium = validStatuses.includes(data.status) &&
-      (!data.expires_at || new Date(data.expires_at) > new Date());
+    // 'cancelled' means the subscription won't renew; premium lasts until expires_at.
+    const notExpired = !data.expires_at || new Date(data.expires_at) > new Date();
+    isPremium = (['active', 'trialing'].includes(data.status) && notExpired) ||
+      (data.status === 'cancelled' && !!data.expires_at && notExpired);
 
     console.log('[Lumaby] Premium status:', isPremium, data.status);
   } catch(e) {

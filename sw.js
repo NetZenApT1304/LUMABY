@@ -1,7 +1,8 @@
 // Lumaby Baby Tracker — Service Worker
-// Version: 1.0.0
+// Bump APP_VERSION on every deploy that changes precached files so old
+// caches are deleted on activate.
 
-const APP_VERSION = '1.0.2';
+const APP_VERSION = '1.0.3';
 const CACHE_NAME = `lumaby-v${APP_VERSION}`;
 const OFFLINE_URL = '/index.html';
 
@@ -10,9 +11,10 @@ const PRECACHE_URLS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/sw.js',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4',
 ];
 
 // ── Install: pre-cache core files ──
@@ -54,6 +56,15 @@ function isCDNRequest(url) {
          url.includes('fonts.gstatic.com');
 }
 
+// Only cache successful, non-opaque responses. Netlify's SPA fallback answers
+// missing files with index.html and a 200, so an HTML body for a non-navigation
+// request (an image, script, etc.) is a missing file, not the asset.
+function isCacheable(response) {
+  if (!response || response.status !== 200 || response.type === 'opaque') return false;
+  const type = response.headers.get('content-type') || '';
+  return !type.includes('text/html');
+}
+
 self.addEventListener('fetch', event => {
   // Skip non-GET and browser extension requests
   if (event.request.method !== 'GET') return;
@@ -77,24 +88,24 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // For all other requests: cache-first strategy
+  // For all other requests: stale-while-revalidate. Serve the cached copy
+  // straight away, and refresh the cache from the network in the background
+  // so changed assets are picked up on the next load.
   event.respondWith(
     caches.match(event.request).then(cached => {
-      if (cached) return cached;
-
-      // Not cached — fetch from network and cache it
-      return fetch(event.request).then(response => {
-        // Only cache valid responses
-        if (!response || response.status !== 200 || response.type === 'opaque') {
-          return response;
+      const network = fetch(event.request).then(response => {
+        if (isCacheable(response)) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         return response;
-      }).catch(() => {
-        // Return nothing gracefully for non-critical assets
-        return new Response('', { status: 408, statusText: 'Offline' });
-      });
+      }).catch(() => cached || new Response('', { status: 408, statusText: 'Offline' }));
+
+      if (cached) {
+        event.waitUntil(network.catch(() => {}));
+        return cached;
+      }
+      return network;
     })
   );
 });

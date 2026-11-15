@@ -19,10 +19,11 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE TABLE IF NOT EXISTS subscriptions (
   id                       UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id                  UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE NOT NULL,
-  stripe_subscription_id   TEXT UNIQUE,
-  stripe_customer_id       TEXT,
-  status                   TEXT NOT NULL DEFAULT 'free' CHECK (status IN ('free','trialing','active','past_due','cancelled','unpaid')),
-  -- status values: free | trialing | active | past_due | cancelled | unpaid
+  ls_subscription_id       TEXT UNIQUE,
+  ls_customer_id           TEXT,
+  status                   TEXT NOT NULL DEFAULT 'free' CHECK (status IN ('free','trialing','active','past_due','cancelled','unpaid','paused','expired')),
+  -- status values: free | trialing | active | past_due | cancelled | unpaid | paused | expired
+  -- 'cancelled' = will not renew; the user keeps premium until expires_at.
   plan                     TEXT,
   current_period_start     TIMESTAMPTZ,
   current_period_end       TIMESTAMPTZ,
@@ -31,6 +32,24 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   created_at               TIMESTAMPTZ DEFAULT NOW(),
   updated_at               TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration for databases created with the old Stripe column names.
+-- Safe to re-run: it only renames columns that still have the old names.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = 'subscriptions' AND column_name = 'stripe_subscription_id') THEN
+    ALTER TABLE subscriptions RENAME COLUMN stripe_subscription_id TO ls_subscription_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = 'subscriptions' AND column_name = 'stripe_customer_id') THEN
+    ALTER TABLE subscriptions RENAME COLUMN stripe_customer_id TO ls_customer_id;
+  END IF;
+END $$;
+
+ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_status_check;
+ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_status_check
+  CHECK (status IN ('free','trialing','active','past_due','cancelled','unpaid','paused','expired'));
 
 -- ── 3. Logs table (for premium cross-device sync) ──
 CREATE TABLE IF NOT EXISTS logs (
@@ -119,7 +138,8 @@ CREATE POLICY "Users can update own growth logs"
 CREATE INDEX IF NOT EXISTS logs_user_id_logged_at ON logs (user_id, logged_at DESC);
 CREATE INDEX IF NOT EXISTS growth_logs_user_id ON growth_logs (user_id, log_date DESC);
 CREATE INDEX IF NOT EXISTS subscriptions_user_id ON subscriptions (user_id);
-CREATE INDEX IF NOT EXISTS subscriptions_customer_id ON subscriptions (stripe_customer_id);
+DROP INDEX IF EXISTS subscriptions_customer_id;
+CREATE INDEX IF NOT EXISTS subscriptions_ls_customer_id ON subscriptions (ls_customer_id);
 
 -- ═══════════════════════════════════════════════════
 --  AUTO-UPDATE updated_at timestamps
