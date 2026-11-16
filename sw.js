@@ -2,7 +2,7 @@
 // Bump APP_VERSION on every deploy that changes precached files so old
 // caches are deleted on activate.
 
-const APP_VERSION = '1.0.5';
+const APP_VERSION = '1.0.6';
 const CACHE_NAME = `lumaby-v${APP_VERSION}`;
 const OFFLINE_URL = '/index.html';
 
@@ -13,7 +13,9 @@ const PRECACHE_URLS = [
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap',
+  '/fonts/dm-sans-normal-latin.woff2',
+  '/fonts/playfair-display-normal-latin.woff2',
+  '/fonts/playfair-display-italic-latin.woff2',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4',
 ];
 
