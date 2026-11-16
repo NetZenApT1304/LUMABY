@@ -570,19 +570,20 @@
 
 <!-- defer: only used from DOMContentLoaded onwards, so it needn't block parsing -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
-<!-- App code, in load order. Classic scripts sharing one global scope. -->
-<script src="js/state.js"></script>
-<script src="js/logs.js"></script>
-<script src="js/insights.js"></script>
-<script src="js/app-shell.js"></script>
-<script src="js/supabase.js"></script>
-<script src="js/temp-report.js"></script>
-<script src="js/sync.js"></script>
-<script src="js/growth-charts.js"></script>
-<script src="js/reminders.js"></script>
-<script src="js/reports.js"></script>
-<script src="js/patches.js"></script>
-<script src="js/book.js"></script>
-<script src="js/pwa.js"></script>
+<!-- App code, in load order. Classic scripts sharing one global scope; defer keeps the order and
+     runs them before DOMContentLoaded, without the browser waiting on each one in turn. -->
+<script defer src="js/state.js"></script>
+<script defer src="js/logs.js"></script>
+<script defer src="js/insights.js"></script>
+<script defer src="js/app-shell.js"></script>
+<script defer src="js/supabase.js"></script>
+<script defer src="js/temp-report.js"></script>
+<script defer src="js/sync.js"></script>
+<script defer src="js/growth-charts.js"></script>
+<script defer src="js/reminders.js"></script>
+<script defer src="js/reports.js"></script>
+<script defer src="js/patches.js"></script>
+<script defer src="js/book.js"></script>
+<script defer src="js/pwa.js"></script>
 </body>
 </html>
