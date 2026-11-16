@@ -9,7 +9,7 @@ const { chromium } = require('playwright');
   await p.reload({ waitUntil: 'load' }).catch(e => errs.push('reload: ' + e.message));
   await p.evaluate(() => document.getElementById('auth-screen')?.classList.contains('visible') && skipAuth()).catch(() => {});
   await p.waitForTimeout(800);
-  const r = await p.evaluate(() => ({ app: typeof launchApp === 'function', home: document.body.innerText.includes('Quick log'), files: performance.getEntriesByType('resource').filter(e => /\/js\//.test(e.name)).length })).catch(e => ({ error: e.message }));
+  const r = await p.evaluate(() => ({ app: typeof launchApp === 'function', home: document.body.innerText.includes('Log something'), files: performance.getEntriesByType('resource').filter(e => /\/js\//.test(e.name)).length })).catch(e => ({ error: e.message }));
   console.log('offline reload:', JSON.stringify(r), 'errors:', errs.length ? errs.slice(0, 3) : 'none');
   await b.close();
 })();

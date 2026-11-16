@@ -81,7 +81,6 @@ function launchApp() {
   initBabies();
   renderBabySwitcher();
   scheduleAllReminders();
-  renderQuickLog();
   if (pendingQuickAction) setTimeout(runPendingQuickAction, 300);
 }
 
@@ -174,7 +173,6 @@ function startTimerTick() {
 }
 
 function renderTimers() {
-  renderQuickLog();
   const bar = document.getElementById('timersBar');
   if (!bar) return;
   bar.innerHTML = '';
@@ -296,7 +294,6 @@ function renderStats() {
 
 // == Timeline ==
 function renderTimeline() {
-  renderQuickLog();
   const tl = document.getElementById('timeline');
   const dayLogs = getLogsForDate(selectedDate);
 

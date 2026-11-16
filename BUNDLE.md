@@ -18,6 +18,9 @@ Netlify's free plan ran out of deploy credits on 2026-11-16; they reset on
   focus outline; reduced-motion support; landmarks; nothing cut off at 200%
   zoom. axe-core: 477 problem elements -> 0. New checks: `tests/e2e/a11y.js`,
   `keyboard.js`, `zoom.js`.
+- Removed the Quick log row from the home screen (it scrolled sideways, cut
+  buttons off and repeated the "Log something" grid). One-tap logging stays
+  in the home-screen icon shortcuts and the timer bar.
 
 ## Ship checklist (on or after 2026-12-15)
 1. Check credits: Netlify → team → Usage & billing.

@@ -38,7 +38,6 @@ let pass = 0, fail = 0; const check = (l, ok, x = '') => { ok ? pass++ : fail++;
   check('undo offered', (await p.locator('.toast-undo').count()) === 1);
   await p.evaluate(() => openLogModal('feed')); await sleep(300);
   check('next time it suggests starting with Left', (await body().locator('#nr-summary').innerText()).includes('start with Left'));
-  check('home quick log says "Start Left side"', (await p.locator('#quickLog').innerText()).includes('Start Left side'));
   // manual entry
   await body().locator('text=Manual entry').click(); await sleep(200);
   await p.fill('#nr-left-min', '12'); await p.selectOption('#nr-last', 'left');
@@ -59,7 +58,7 @@ let pass = 0, fail = 0; const check = (l, ok, x = '') => { ok ? pass++ : fail++;
   await body().locator('text=Save bottle').click(); await sleep(300);
   l = await last();
   check('saved: Bottle · Breast milk · 150 ml (stored as oz too)', l.detail === 'Bottle · Breast milk · 150 ml' && l.feedType === 'breastmilk' && Math.abs(l.oz - 5.07) < 0.05 && l.unit === 'ml', JSON.stringify(l));
-  check('quick log offers "Repeat feed · Breast milk · 150 ml"', (await p.locator('#quickLog').innerText()).includes('Breast milk · 150 ml'));
+  check('a "Repeat last feed" shortcut would repeat it', await p.evaluate(() => { const l = lastFeed(); return bottleDetail(l.feedType, l.oz, l.unit) === 'Bottle · Breast milk · 150 ml'; }));
   await p.evaluate(() => openLogModal('feed')); await sleep(300);
   check('form remembers ml and last amount', (await body().locator('#bt-amount').innerText()).replace(/\s/g, '') === '150ml');
   await p.evaluate(() => closeModal('modal-log'));

@@ -48,9 +48,9 @@ function makeClickablesAccessible(root) {
     }
   });
   // sideways-scrolling rows must be reachable by keyboard
-  root.querySelectorAll('#dayStrip, #quickLog, .book-preview-strip, #babySwitcher').forEach(el => {
+  root.querySelectorAll('#dayStrip, .book-preview-strip, #babySwitcher').forEach(el => {
     if (!el.hasAttribute('tabindex') && el.scrollWidth > el.clientWidth) el.tabIndex = 0;
-    if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', { dayStrip: 'Days', quickLog: 'Quick log', babySwitcher: 'Babies' }[el.id] || 'Chapters');
+    if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', { dayStrip: 'Days', babySwitcher: 'Babies' }[el.id] || 'Chapters');
   });
   const fab = document.getElementById('fab');
   if (fab && !fab.getAttribute('aria-label')) fab.setAttribute('aria-label', 'Log something');

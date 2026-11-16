@@ -1009,24 +1009,12 @@ html.night .premium-gate, html.night .chapter-locked-overlay { background: rgba(
 html.night .tooth { border-color: #7a5d4c; }
 html.night .tooth.in { background: #e9c1a8; border-color: #e9c1a8; }
 
-/* ── Quick log (one tap) ── */
-.quick-log { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px 18px; scrollbar-width: none; }
-.quick-log::-webkit-scrollbar { display: none; }
-.ql-btn {
-  flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 10px 14px;
-  background: var(--card); border: 1.5px solid var(--warm-tan); border-radius: 16px;
-  font: 500 13px 'DM Sans', sans-serif; color: var(--text); cursor: pointer; white-space: nowrap;
-}
-.ql-btn:active { transform: scale(0.97); }
-.ql-btn .ql-icon { font-size: 18px; }
-.ql-btn .ql-sub { display: block; font-size: 11px; color: var(--text-light); font-weight: 400; }
-.ql-btn.running { border-color: var(--terracotta); background: rgba(196,121,90,0.12); }
+/* ── Undo toast (one-tap logging) ── */
 .toast.toast-undo { display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 20px; }
 .toast-undo button {
   background: rgba(255,255,255,0.18); color: inherit; border: none; border-radius: 12px;
   padding: 6px 12px; font: 600 13px 'DM Sans', sans-serif; cursor: pointer;
 }
-html.night .ql-btn { background: #2a1d18; }
 
 /* ── Partner banner ── */
 .partner-banner {

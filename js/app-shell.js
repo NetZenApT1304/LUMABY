@@ -81,7 +81,7 @@ function showUndoToast(msg, onUndo) {
   }, 5000);
 }
 
-// ── One-tap logging ──
+// ── One-tap logging (used by the home-screen icon shortcuts, /?quick=…) ──
 const FEED_LABELS = { formula: 'Formula', breastmilk: 'Breast milk', 'breast-left': 'Breast · Left', 'breast-right': 'Breast · Right', 'breast-both': 'Breast · Both', solids: 'Solids' };
 const DIAPER_QUICK = { wet: ['💧', 'Wet'], dirty: ['🟤', 'Dirty'], both: ['💧🟤', 'Both'] };
 
@@ -110,11 +110,10 @@ function quickDiaper(kind) {
 // Bottle/formula/solids: log the same as last time.
 function quickFeed() {
   const last = lastFeed();
-  if (activeTimers.feed) { stopTimer('feed'); renderQuickLog(); return; }
+  if (activeTimers.feed) { stopTimer('feed'); return; }
   if (!last || isNursingFeed(last)) {
     nurseTap(suggestedSide());
     showToast(`🤱 ${suggestedSideLabel()} side started`);
-    renderQuickLog();
     return;
   }
   const detail = bottleDetail(last.feedType, last.oz || 0, last.unit || 'oz');
@@ -130,32 +129,8 @@ function suggestedSideLabel() {
 
 function quickSleep() {
   if (activeTimers.sleep) stopTimer('sleep'); else startTimer('sleep', '😴', 'Sleep');
-  renderQuickLog();
 }
 
-function renderQuickLog() {
-  const el = document.getElementById('quickLog');
-  if (!el) return;
-  const last = lastFeed();
-  const sleeping = !!activeTimers.sleep, feeding = !!activeTimers.feed;
-  let feedBtn;
-  if (feeding) {
-    feedBtn = `<button class="ql-btn running" onclick="quickFeed()"><span class="ql-icon">🤱</span><span>Save nursing<span class="ql-sub">${activeTimers.feed.label || 'Timer running'}</span></span></button>`;
-  } else if (!last || isNursingFeed(last)) {
-    const side = suggestedSide() === 'left' ? 'Left' : 'Right';
-    const prev = lastFeedSide(last);
-    feedBtn = `<button class="ql-btn" onclick="quickFeed()"><span class="ql-icon">🤱</span><span>Start ${side} side<span class="ql-sub">${prev ? 'Last ended on ' + (prev === 'left' ? 'Left' : 'Right') : 'Nursing timer'}</span></span></button>`;
-  } else {
-    const d = bottleDetail(last.feedType, last.oz || 0, last.unit || 'oz').replace('Bottle · ', '');
-    feedBtn = `<button class="ql-btn" onclick="quickFeed()"><span class="ql-icon">🍼</span><span>Repeat feed<span class="ql-sub">${d}</span></span></button>`;
-  }
-  el.innerHTML = `
-    <button class="ql-btn ${sleeping ? 'running' : ''}" onclick="quickSleep()"><span class="ql-icon">😴</span>
-      <span>${sleeping ? 'Stop sleep' : 'Start sleep'}<span class="ql-sub">${sleeping ? 'Timer running' : 'One tap'}</span></span></button>
-    ${feedBtn}
-    ${Object.entries(DIAPER_QUICK).map(([k, [icon, label]]) =>
-      `<button class="ql-btn" onclick="quickDiaper('${k}')"><span class="ql-icon">${icon}</span><span>${label}<span class="ql-sub">Diaper</span></span></button>`).join('')}`;
-}
 
 // Home-screen shortcuts: /?quick=feed | diaper-wet | diaper-dirty | sleep
 let pendingQuickAction = (() => {
