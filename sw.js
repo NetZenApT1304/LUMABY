@@ -2,7 +2,7 @@
 // Bump APP_VERSION on every deploy that changes precached files so old
 // caches are deleted on activate.
 
-const APP_VERSION = '1.0.6';
+const APP_VERSION = '1.0.7';
 const CACHE_NAME = `lumaby-v${APP_VERSION}`;
 const OFFLINE_URL = '/index.html';
 
@@ -11,6 +11,20 @@ const PRECACHE_URLS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/css/app.css',
+  '/js/app-shell.js',
+  '/js/book.js',
+  '/js/growth-charts.js',
+  '/js/insights.js',
+  '/js/logs.js',
+  '/js/patches.js',
+  '/js/pwa.js',
+  '/js/reminders.js',
+  '/js/reports.js',
+  '/js/state.js',
+  '/js/supabase.js',
+  '/js/sync.js',
+  '/js/temp-report.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/fonts/dm-sans-normal-latin.woff2',
@@ -81,8 +95,10 @@ self.addEventListener('fetch', event => {
   if (sameOrigin && url.pathname.startsWith('/.netlify/')) return;
   if (!sameOrigin && !isCDNRequest(event.request.url)) return;
 
-  // For navigation requests (HTML pages), use network-first
-  if (event.request.mode === 'navigate') {
+  // Pages, and the app's own code and styles, are network-first (cache only
+  // when offline): the page and its scripts must come from the same release.
+  const appCode = sameOrigin && /\.(js|css)$/.test(url.pathname) && url.pathname !== '/sw.js';
+  if (event.request.mode === 'navigate' || appCode) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -93,7 +109,7 @@ self.addEventListener('fetch', event => {
         })
         .catch(() => {
           // Offline: serve cached page
-          return caches.match(OFFLINE_URL);
+          return appCode ? caches.match(event.request) : caches.match(OFFLINE_URL);
         })
     );
     return;
