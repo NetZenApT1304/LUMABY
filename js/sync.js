@@ -546,7 +546,7 @@ async function showPartnerModal() {
     const name = sanitizeInput(m.email || 'Unknown') + (m.is_me ? ' (you)' : '');
     let action = '';
     if (m.role !== 'owner' && (mine || m.is_me)) {
-      action = `<button class="copy-btn" style="background:transparent;color:var(--terracotta);border:1px solid currentColor" onclick="removePartner('${baby.id}','${m.user_id}',${m.is_me})">${m.is_me ? 'Leave' : 'Remove'}</button>`;
+      action = `<button class="copy-btn" style="background:transparent;color:var(--text-accent);border:1px solid currentColor" onclick="removePartner('${baby.id}','${m.user_id}',${m.is_me})">${m.is_me ? 'Leave' : 'Remove'}</button>`;
     }
     return `<div class="partner-status-row" style="justify-content:space-between;gap:8px">
       <span style="display:flex;align-items:center;gap:8px;min-width:0"><span class="status-dot green"></span>
@@ -710,7 +710,7 @@ function renderBabySwitcher() {
       </div>
       <div class="baby-chip add-baby" onclick="openModal('modal-upgrade')" style="border-color:rgba(212,168,83,0.4);background:rgba(212,168,83,0.06)">
         <span class="bc-emoji" style="font-size:14px">✨+</span>
-        <span class="bc-name" style="color:var(--soft-gold)">Premium</span>
+        <span class="bc-name" style="color:var(--text-gold)">Premium</span>
       </div>`;
     return;
   }

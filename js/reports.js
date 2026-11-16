@@ -350,7 +350,7 @@ function showSleepCoach() {
       ].map(([icon, lbl, val]) => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(61,43,31,0.06)">
           <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)">${icon} ${lbl}</div>
-          <div style="font-size:14px;font-weight:700;color:var(--terracotta)">${val}</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text-accent)">${val}</div>
         </div>`).join('')}
     </div>
 

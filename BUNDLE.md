@@ -11,6 +11,13 @@ Netlify's free plan ran out of deploy credits on 2026-11-16; they reset on
 
 ## In this bundle (on the branch)
 - Test suites committed to the repo (`tests/`, `tests/run-all.sh`).
+- Accessibility: pinch-zoom re-enabled; labels on every field; all tappable
+  controls work as buttons (keyboard, switch control, screen readers);
+  popups are real dialogs (focus moves in, Tab stays inside, Escape closes,
+  focus returns); contrast meets WCAG AA in day and night mode; visible
+  focus outline; reduced-motion support; landmarks; nothing cut off at 200%
+  zoom. axe-core: 477 problem elements -> 0. New checks: `tests/e2e/a11y.js`,
+  `keyboard.js`, `zoom.js`.
 
 ## Ship checklist (on or after 2026-12-15)
 1. Check credits: Netlify → team → Usage & billing.

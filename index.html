@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://pduixzudfizustabthwu.supabase.co https://lumaby.lemonsqueezy.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://pduixzudfizustabthwu.supabase.co wss://pduixzudfizustabthwu.supabase.co https://lumabyy.netlify.app;">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumaby — Baby Tracker</title>
 
 <!-- PWA -->
@@ -191,7 +191,7 @@
 
 
 <!-- ══════════════ AUTH SCREEN ══════════════ -->
-<div id="auth-screen">
+<div id="auth-screen" role="main">
   <div class="auth-logo">🌸</div>
   <h1 class="auth-title">Lumaby 🌙</h1>
   <p class="auth-sub">Sign in to sync your data across<br>devices and unlock premium features.</p>
@@ -317,7 +317,7 @@
 </div>
 
 <!-- ══════════════ ONBOARDING ══════════════ -->
-<div id="onboarding">
+<div id="onboarding" role="main">
   <div class="onboard-emoji">🌸</div>
   <h1 class="onboard-title">Welcome to Lumaby</h1>
   <p class="onboard-sub">Your calm, beautiful space to track<br>every precious moment with your baby.</p>
@@ -349,7 +349,7 @@
 </div>
 
 <!-- ══════════════ MAIN APP ══════════════ -->
-<div class="app" id="mainApp" style="display:none;">
+<div class="app" id="mainApp" role="main" style="display:none;">
 
   <!-- ── HOME ── -->
   <div class="screen active" id="screen-home">
@@ -585,5 +585,6 @@
 <script defer src="js/patches.js"></script>
 <script defer src="js/book.js"></script>
 <script defer src="js/pwa.js"></script>
+<script defer src="js/a11y.js"></script>
 </body>
 </html>

@@ -32,6 +32,9 @@ logic tests run first and need no token.
 | `e2e/reminders.js` | turning reminders on (device registration) |
 | `e2e/free.js` | a free account: logging works, nothing is synced |
 | `e2e/offline.js` | the app starts offline from the service worker |
+| `e2e/a11y.js` | axe-core accessibility audit of every screen, popup and form, day and night |
+| `e2e/keyboard.js` | keyboard use, dialogs (focus, Tab, Escape), labels, landmarks, 200% zoom |
+| `e2e/zoom.js` | at 200% zoom nothing runs off the edge |
 | `e2e/sweep.js` | every screen, popup, form and export (free/Premium, day/night): errors, layout, saves, downloads |
 | `e2e/perf.js`, `e2e/waterfall.js` | load timing on a simulated mid-range phone and slow 4G |
 
