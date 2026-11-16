@@ -1006,6 +1006,32 @@ canvas.line-chart { width: 100% !important; height: 120px !important; }
 html.night .seg, html.night .amount-picker button, html.night .fine-adjust button { background: #2a1d18; }
 html.night .thermo-thumb { background: #e9c1a8; }
 
+/* ── Chips, tooth chart ── */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 8px 13px; border-radius: 14px; border: 1.5px solid var(--warm-tan); background: var(--card);
+  font: 500 13px 'DM Sans', sans-serif; color: var(--text); cursor: pointer;
+}
+.chip.on { background: var(--terracotta); border-color: var(--terracotta); color: #fff; }
+.chip.warn { border-color: #c94a3b; color: #c94a3b; }
+.first-try { display: inline-block; padding: 6px 12px; border-radius: 12px; background: rgba(212,168,83,0.18); color: var(--text); font-size: 13px; font-weight: 600; }
+.safety-note { font-size: 12px; color: #c94a3b; margin-top: 8px; line-height: 1.5; }
+.teeth-chart { background: var(--card); border: 1.5px solid var(--warm-tan); border-radius: 20px; padding: 14px 10px; margin-bottom: 10px; }
+.teeth-row { display: flex; justify-content: center; gap: 5px; margin: 6px 0; }
+.teeth-label { text-align: center; font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.8px; }
+.tooth {
+  width: 27px; height: 34px; border-radius: 12px 12px 8px 8px; border: 1.5px dashed var(--warm-tan); background: transparent; cursor: pointer; padding: 0;
+}
+.teeth-row + .teeth-row .tooth { border-radius: 8px 8px 12px 12px; }
+.tooth.in { background: #fffaf2; border: 1.5px solid #d9c6ad; box-shadow: inset 0 -3px 0 rgba(61,43,31,0.06); }
+.tooth.picked { background: var(--soft-gold); border: 2px solid var(--terracotta); }
+.teeth-count { text-align: center; font-weight: 600; color: var(--deep-brown); font-size: 14px; }
+.teeth-picked { text-align: center; font-size: 13px; color: var(--text-light); margin: 4px 0 14px; min-height: 18px; }
+html.night .chip, html.night .teeth-chart { background: #2a1d18; }
+html.night .chip.on { background: var(--terracotta); }
+html.night .tooth { border-color: #7a5d4c; }
+html.night .tooth.in { background: #e9c1a8; border-color: #e9c1a8; }
+
 /* ── Quick log (one tap) ── */
 .quick-log { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px 18px; scrollbar-width: none; }
 .quick-log::-webkit-scrollbar { display: none; }
@@ -1315,6 +1341,9 @@ html.night body::after {
         <div class="action-btn" onclick="openLogModal('meds')"><span class="ab-icon">💊</span><span class="ab-label">Meds</span></div>
         <div class="action-btn" onclick="openLogModal('milestone')"><span class="ab-icon">⭐</span><span class="ab-label">Moment</span></div>
         <div class="action-btn" onclick="openLogModal('temp')"><span class="ab-icon">🌡️</span><span class="ab-label">Temp</span></div>
+        <div class="action-btn" onclick="openLogModal('solids')"><span class="ab-icon">🥕</span><span class="ab-label">Solids</span></div>
+        <div class="action-btn" onclick="openLogModal('health')"><span class="ab-icon">🩺</span><span class="ab-label">Doctor</span></div>
+        <div class="action-btn" onclick="openLogModal('tooth')"><span class="ab-icon">🦷</span><span class="ab-label">Teeth</span></div>
       </div>
 
       <div class="section-title">Today's log</div>
@@ -1465,6 +1494,9 @@ html.night body::after {
       <div class="log-opt" onclick="openLogModal('meds')"><span class="lo-icon">💊</span><span class="lo-name">Medicine</span><span class="lo-desc">Dosage & type</span></div>
       <div class="log-opt" onclick="openLogModal('milestone')"><span class="lo-icon">⭐</span><span class="lo-name">Milestone</span><span class="lo-desc">Capture the moment</span></div>
       <div class="log-opt" onclick="openLogModal('temp')"><span class="lo-icon">🌡️</span><span class="lo-name">Temperature</span><span class="lo-desc">Thermometer reading</span></div>
+      <div class="log-opt" onclick="openLogModal('solids')"><span class="lo-icon">🥕</span><span class="lo-name">Solids</span><span class="lo-desc">New foods & reactions</span></div>
+      <div class="log-opt" onclick="openLogModal('health')"><span class="lo-icon">🩺</span><span class="lo-name">Doctor & vaccines</span><span class="lo-desc">Visits and shots</span></div>
+      <div class="log-opt" onclick="openLogModal('tooth')"><span class="lo-icon">🦷</span><span class="lo-name">Teething</span><span class="lo-desc">Tooth chart & symptoms</span></div>
       <div class="log-opt" onclick="openLogModal('growth')"><span class="lo-icon">📏</span><span class="lo-name">Growth</span><span class="lo-desc">Weight & height</span></div>
       <div class="log-opt" onclick="openLogModal('note')"><span class="lo-icon">📝</span><span class="lo-name">Note</span><span class="lo-desc">Free text note</span></div>
     </div>
@@ -1871,6 +1903,18 @@ const LOG_CONFIGS = {
     title: '🌡️ Temperature',
     build: () => tempFormHtml(),
   },
+  health: {
+    title: '🩺 Doctor & vaccines',
+    build: () => healthFormHtml(),
+  },
+  solids: {
+    title: '🥕 Solids',
+    build: () => solidsFormHtml(),
+  },
+  tooth: {
+    title: '🦷 Teething',
+    build: () => teethFormHtml(),
+  },
   diaper: {
     title: '🌿 Diaper Change',
     build: () => `
@@ -2015,6 +2059,7 @@ function openLogModal(type) {
   document.getElementById('log-modal-body').innerHTML = cfg.build();
   openModal('modal-log');
   if (type === 'temp') initThermo();
+  if (type === 'solids') initSolidsForm();
   // Update timer display inside modal
   if (activeTimers[type]) {
     updateModalTimer(type);
@@ -2438,6 +2483,186 @@ function saveNote() {
   if (!text) return;
   pushLog({ id:uid(), type:'note', icon:'📝', title:'Note', detail:text, time:time.toISOString() });
 }
+// =======================================
+//  MORE TRACKING: doctor & vaccines, solids, teething
+// =======================================
+function todayInput() { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+function dateTimeToIso(dateStr, timeStr) {
+  const [y, m, d] = (dateStr || todayInput()).split('-').map(Number);
+  const [hh, mm] = (timeStr || '12:00').split(':').map(Number);
+  return new Date(y, m - 1, d, hh, mm).toISOString();
+}
+function escHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+// Multi-select chips: data-on toggles; read with chipValues(containerId).
+function chipsHtml(id, options, selected = [], single = false) {
+  return `<div class="chip-row" id="${id}" data-single="${single}">` + options.map(([v, label]) =>
+    `<button type="button" class="chip ${selected.includes(v) ? 'on' : ''}" data-v="${escHtml(v)}" aria-pressed="${selected.includes(v)}" onclick="toggleChip(this)">${label}</button>`).join('') + '</div>';
+}
+function toggleChip(el) {
+  const row = el.parentElement;
+  const off = c => { c.classList.remove('on'); c.setAttribute('aria-pressed', 'false'); };
+  if (row.dataset.single === 'true') row.querySelectorAll('.chip').forEach(c => { if (c !== el) off(c); });
+  el.classList.toggle('on'); el.setAttribute('aria-pressed', el.classList.contains('on'));
+  // "None" can't be combined with anything else
+  if (el.classList.contains('on')) {
+    if (el.dataset.v === 'none') row.querySelectorAll('.chip').forEach(c => { if (c !== el) off(c); });
+    else row.querySelectorAll('.chip[data-v="none"]').forEach(off);
+  }
+  row.dispatchEvent(new Event('change'));
+}
+function chipValues(id) { return [...document.querySelectorAll(`#${id} .chip.on`)].map(c => c.dataset.v); }
+
+// ── 🩺 Doctor & vaccines ──
+const VACCINES = [['HepB', 'Hep B'], ['RSV', 'RSV'], ['RV', 'Rotavirus'], ['DTaP', 'DTaP'], ['Hib', 'Hib'], ['PCV', 'Pneumococcal'],
+  ['IPV', 'Polio (IPV)'], ['Flu', 'Flu'], ['COVID', 'COVID-19'], ['MMR', 'MMR'], ['VAR', 'Chickenpox'], ['HepA', 'Hep A']];
+const VACCINE_NAME = Object.fromEntries(VACCINES);
+let healthTab = 'vaccine';
+function setHealthTab(t) { healthTab = t; const f = document.getElementById('health-form'); if (f) f.outerHTML = healthFormHtml(); }
+function healthFormHtml() {
+  const when = `<div class="form-row">
+      <div class="form-group"><label>Date</label><input class="form-input" id="hl-date" type="date" value="${todayInput()}" max="${todayInput()}"/></div>
+      <div class="form-group"><label>Time</label><input class="form-input" id="hl-time" type="time" value="${timeInputNow(0)}"/></div></div>`;
+  const tabs = `<div class="seg"><button class="${healthTab === 'vaccine' ? 'active' : ''}" onclick="setHealthTab('vaccine')">Vaccines</button>
+    <button class="${healthTab === 'visit' ? 'active' : ''}" onclick="setHealthTab('visit')">Doctor visit</button></div>`;
+  if (healthTab === 'vaccine') {
+    return `<div class="log-form" id="health-form">${tabs}${when}
+      <div class="form-group"><label>Vaccines given</label>${chipsHtml('hl-vax', VACCINES)}</div>
+      <div class="form-group"><label>Other vaccine (optional)</label><input class="form-input" id="hl-vax-other" placeholder="Name"/></div>
+      <div class="form-group"><label>Reaction</label>${chipsHtml('hl-react', [['none', 'None'], ['fussy', 'Fussy'], ['sore', 'Sore leg/arm'], ['fever', 'Fever'], ['sleepy', 'Sleepy']], ['none'])}</div>
+      <div class="form-group"><label>Notes</label><textarea class="form-input" id="hl-notes" placeholder="Batch, clinic, next appointment…"></textarea></div>
+      <button class="btn-primary btn-full" onclick="saveHealth()">Save vaccines</button></div>`;
+  }
+  return `<div class="log-form" id="health-form">${tabs}${when}
+    <div class="form-group"><label>Visit type</label>${chipsHtml('hl-reason', [['checkup', 'Checkup'], ['sick', 'Sick visit'], ['specialist', 'Specialist'], ['other', 'Other']], ['checkup'], true)}</div>
+    <div class="form-group"><label>Doctor or clinic</label><input class="form-input" id="hl-provider" placeholder="e.g. Dr. Lee"/></div>
+    <div class="form-group"><label>Notes</label><textarea class="form-input" id="hl-notes" placeholder="What the doctor said, follow-ups…"></textarea></div>
+    <button class="btn-primary btn-full" onclick="saveHealth()">Save visit</button></div>`;
+}
+function saveHealth() {
+  const time = dateTimeToIso(document.getElementById('hl-date').value, document.getElementById('hl-time').value);
+  const notes = document.getElementById('hl-notes').value.trim();
+  if (healthTab === 'vaccine') {
+    const vax = chipValues('hl-vax').map(v => VACCINE_NAME[v] || v);
+    const other = document.getElementById('hl-vax-other').value.trim();
+    if (other) vax.push(other);
+    if (!vax.length) { showToast('⚠️ Pick at least one vaccine'); return; }
+    const reactions = chipValues('hl-react').filter(r => r !== 'none');
+    const detail = [vax.join(', '), reactions.length ? 'Reaction: ' + reactions.join(', ') : '', notes].filter(Boolean).join(' · ');
+    pushLog({ id: uid(), type: 'health', icon: '💉', title: vax.length === 1 ? 'Vaccine' : 'Vaccines', detail, time, healthKind: 'vaccine', vaccines: vax, reactions, notes });
+  } else {
+    const reason = chipValues('hl-reason')[0] || 'other';
+    const label = { checkup: 'Checkup', sick: 'Sick visit', specialist: 'Specialist', other: 'Doctor visit' }[reason];
+    const provider = document.getElementById('hl-provider').value.trim();
+    pushLog({ id: uid(), type: 'health', icon: '🩺', title: label, detail: [provider, notes].filter(Boolean).join(' · ') || label, time,
+              healthKind: 'visit', visitReason: reason, provider, notes });
+  }
+}
+
+// ── 🥕 Solids ──
+function foodsTried() {
+  const map = new Map();
+  [...logs].reverse().forEach(l => { if (l.type === 'solids' && l.food) {
+    const k = l.food.toLowerCase(); const prev = map.get(k) || { name: l.food, times: 0, reaction: false };
+    map.set(k, { name: l.food, times: prev.times + 1, reaction: prev.reaction || l.reaction === 'reaction', last: l.time });
+  } });
+  return [...map.values()].sort((a, b) => Date.parse(b.last) - Date.parse(a.last));
+}
+function solidsFormHtml() {
+  const tried = foodsTried().slice(0, 12);
+  return `<div class="log-form" id="solids-form">
+    <div class="form-group"><label>Food</label><input class="form-input" id="sd-food" placeholder="e.g. Avocado, oatmeal" oninput="updateFirstTry()" autocomplete="off"/></div>
+    ${tried.length ? `<div class="chip-row" style="margin:-6px 0 14px">${tried.map(f =>
+      `<button type="button" class="chip ${f.reaction ? 'warn' : ''}" onclick="document.getElementById('sd-food').value=this.dataset.food;updateFirstTry()" data-food="${escHtml(f.name)}">${f.reaction ? '⚠️ ' : ''}${escHtml(f.name)}</button>`).join('')}</div>` : ''}
+    <div class="form-group" id="sd-first-wrap" style="display:none"><span class="first-try">✨ First time trying</span></div>
+    <div class="form-group"><label>How much</label>${chipsHtml('sd-amount', [['taste', 'A taste'], ['some', 'Some'], ['lots', 'Lots']], ['some'], true)}</div>
+    <div class="form-group"><label>How it went</label>${chipsHtml('sd-reaction', [['liked', '😋 Liked it'], ['ok', '😐 OK'], ['disliked', '😖 Not keen'], ['reaction', '⚠️ Reaction']], ['liked'], true)}</div>
+    <div class="form-group" id="sd-react-wrap" style="display:none"><label>What happened?</label>
+      ${chipsHtml('sd-symptoms', [['rash', 'Rash / hives'], ['vomit', 'Vomiting'], ['swelling', 'Swelling'], ['diarrhea', 'Diarrhea'], ['breathing', 'Breathing trouble']])}
+      <p class="safety-note">If your baby has trouble breathing or swelling of the face or lips, call emergency services right away.</p></div>
+    <div class="form-row"><div class="form-group"><label>Time</label><input class="form-input" id="sd-time" type="time" value="${timeInputNow(0)}"/></div></div>
+    <div class="form-group"><label>Notes</label><textarea class="form-input" id="sd-notes" placeholder="Texture, how it was prepared…"></textarea></div>
+    <button class="btn-primary btn-full" onclick="saveSolids()">Save</button></div>`;
+}
+function updateFirstTry() {
+  const v = document.getElementById('sd-food').value.trim().toLowerCase();
+  const first = v && !foodsTried().some(f => f.name.toLowerCase() === v);
+  document.getElementById('sd-first-wrap').style.display = first ? '' : 'none';
+}
+function initSolidsForm() {
+  const r = document.getElementById('sd-reaction');
+  if (r) r.addEventListener('change', () => { document.getElementById('sd-react-wrap').style.display = chipValues('sd-reaction')[0] === 'reaction' ? '' : 'none'; });
+}
+function saveSolids() {
+  const food = document.getElementById('sd-food').value.trim();
+  if (!food) { showToast('⚠️ What food was it?'); return; }
+  const firstTry = !foodsTried().some(f => f.name.toLowerCase() === food.toLowerCase());
+  const amount = chipValues('sd-amount')[0] || 'some', reaction = chipValues('sd-reaction')[0] || 'ok';
+  const symptoms = reaction === 'reaction' ? chipValues('sd-symptoms') : [];
+  const notes = document.getElementById('sd-notes').value.trim();
+  const amountLabel = { taste: 'a taste', some: 'some', lots: 'lots' }[amount];
+  const reactLabel = { liked: 'liked it', ok: 'OK', disliked: 'not keen', reaction: '⚠️ reaction' + (symptoms.length ? ' (' + symptoms.join(', ') + ')' : '') }[reaction];
+  const detail = [food, amountLabel, reactLabel, firstTry ? 'first time' : '', notes].filter(Boolean).join(' · ');
+  pushLog({ id: uid(), type: 'solids', icon: '🥕', title: firstTry ? 'Solids · new food' : 'Solids', detail,
+            time: timeInputToDate(document.getElementById('sd-time').value).toISOString(), food, amount, reaction, symptoms, firstTry, notes });
+}
+
+// ── 🦷 Teething ──
+// Universal letters A-T: upper A (right second molar) ... J (left second molar),
+// lower K (left second molar) ... T (right second molar).
+const TEETH_UPPER = [['A', 'Upper right second molar'], ['B', 'Upper right first molar'], ['C', 'Upper right canine'], ['D', 'Upper right lateral incisor'], ['E', 'Upper right central incisor'],
+  ['F', 'Upper left central incisor'], ['G', 'Upper left lateral incisor'], ['H', 'Upper left canine'], ['I', 'Upper left first molar'], ['J', 'Upper left second molar']];
+const TEETH_LOWER = [['T', 'Lower right second molar'], ['S', 'Lower right first molar'], ['R', 'Lower right canine'], ['Q', 'Lower right lateral incisor'], ['P', 'Lower right central incisor'],
+  ['O', 'Lower left central incisor'], ['N', 'Lower left lateral incisor'], ['M', 'Lower left canine'], ['L', 'Lower left first molar'], ['K', 'Lower left second molar']];
+const TOOTH_NAME = Object.fromEntries([...TEETH_UPPER, ...TEETH_LOWER]);
+function teethIn() {
+  const map = {};
+  logs.forEach(l => { if (l.type === 'tooth' && l.tooth && (!map[l.tooth] || Date.parse(l.time) < Date.parse(map[l.tooth]))) map[l.tooth] = l.time; });
+  return map;
+}
+let selectedTooth = null;
+function pickTooth(t) {
+  if (teethIn()[t]) { showToast(`🦷 ${TOOTH_NAME[t]} — already in`); return; }
+  selectedTooth = selectedTooth === t ? null : t;
+  document.querySelectorAll('.tooth').forEach(b => { b.classList.toggle('picked', b.dataset.t === selectedTooth); b.setAttribute('aria-pressed', b.dataset.t === selectedTooth); });
+  document.getElementById('th-picked').textContent = selectedTooth ? `New tooth: ${TOOTH_NAME[selectedTooth]}` : 'Tap a tooth if a new one came through';
+}
+function teethFormHtml() {
+  selectedTooth = null;
+  const have = teethIn(), n = Object.keys(have).length;
+  const row = list => `<div class="teeth-row">${list.map(([t, name]) =>
+    `<button type="button" class="tooth ${have[t] ? 'in' : ''}" data-t="${t}" onclick="pickTooth('${t}')" aria-pressed="false"
+      aria-label="${name}${have[t] ? ', in since ' + new Date(have[t]).toLocaleDateString() : ''}" title="${name}"></button>`).join('')}</div>`;
+  return `<div class="log-form" id="teeth-form">
+    <div class="teeth-chart" aria-label="Tooth chart">
+      <div class="teeth-label">Upper</div>${row(TEETH_UPPER)}${row(TEETH_LOWER)}<div class="teeth-label">Lower</div>
+    </div>
+    <div class="teeth-count">${n} of 20 teeth in</div>
+    <div class="teeth-picked" id="th-picked">Tap a tooth if a new one came through</div>
+    <div class="form-group"><label>Symptoms</label>${chipsHtml('th-symptoms', [['drooling', 'Drooling'], ['fussy', 'Fussy'], ['chewing', 'Chewing'], ['sleep', 'Poor sleep'], ['gums', 'Swollen gums'], ['temp', 'Mild temperature']])}</div>
+    <div class="form-row"><div class="form-group"><label>Date</label><input class="form-input" id="th-date" type="date" value="${todayInput()}" max="${todayInput()}"/></div>
+      <div class="form-group"><label>Time</label><input class="form-input" id="th-time" type="time" value="${timeInputNow(0)}"/></div></div>
+    <div class="form-group"><label>Notes</label><textarea class="form-input" id="th-notes" placeholder="Remedies that helped…"></textarea></div>
+    <button class="btn-primary btn-full" onclick="saveTeething()">Save</button></div>`;
+}
+function saveTeething() {
+  const symptoms = chipValues('th-symptoms'), notes = document.getElementById('th-notes').value.trim();
+  if (!selectedTooth && !symptoms.length && !notes) { showToast('⚠️ Tap a tooth or pick a symptom'); return; }
+  const labels = { drooling: 'drooling', fussy: 'fussy', chewing: 'chewing', sleep: 'poor sleep', gums: 'swollen gums', temp: 'mild temperature' };
+  const detail = [selectedTooth ? 'New tooth: ' + TOOTH_NAME[selectedTooth] : '', symptoms.map(s => labels[s]).join(', '), notes].filter(Boolean).join(' · ');
+  const n = Object.keys(teethIn()).length + (selectedTooth ? 1 : 0);
+  pushLog({ id: uid(), type: 'tooth', icon: '🦷', title: selectedTooth ? `New tooth! (${n} of 20)` : 'Teething', detail,
+            time: dateTimeToIso(document.getElementById('th-date').value, document.getElementById('th-time').value),
+            tooth: selectedTooth || null, symptoms, notes });
+}
+
+// ── For the pediatrician report ──
+function healthReportData() {
+  const vaccines = logs.filter(l => l.type === 'health' && l.healthKind === 'vaccine').slice(0, 10);
+  const visits = logs.filter(l => l.type === 'health' && l.healthKind === 'visit').slice(0, 6);
+  const foods = foodsTried();
+  return { vaccines, visits, foods, reactions: foods.filter(f => f.reaction), teeth: Object.keys(teethIn()).length };
+}
+
 
 // =======================================
 //  INSIGHTS
@@ -4886,6 +5111,25 @@ function showPediReport() {
             <span style="color:var(--deep-brown);font-weight:600">${tempOf(l).toFixed(1)} ${u}${isFeverReading(l) ? ' <span style="color:#c94a3b">● Fever</span>' : ''}</span></div>`).join('')}
           <div style="height:14px"></div>`;
       })()}
+      ${(() => {
+        const h = healthReportData();
+        const head = t => `<div style="font-size:12px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:0.6px;margin:0 0 8px">${t}</div>`;
+        const row = (a, b) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(61,43,31,0.05);font-size:13px"><span style="color:var(--text-light);white-space:nowrap">${a}</span><span style="color:var(--deep-brown);text-align:right">${b}</span></div>`;
+        let out = '';
+        if (h.vaccines.length || h.visits.length) {
+          out += head('Doctor & vaccines');
+          [...h.vaccines, ...h.visits].sort((a, b) => Date.parse(b.time) - Date.parse(a.time)).slice(0, 8).forEach(l =>
+            out += row(formatDate(l.time.split('T')[0]), (l.healthKind === 'vaccine' ? '💉 ' + escHtml(l.vaccines.join(', ')) + (l.reactions?.length ? ' · reaction: ' + escHtml(l.reactions.join(', ')) : '') : '🩺 ' + escHtml(l.title + (l.provider ? ' · ' + l.provider : '')))));
+          out += '<div style="height:14px"></div>';
+        }
+        if (h.foods.length) {
+          out += head(`Solids · ${h.foods.length} food${h.foods.length === 1 ? '' : 's'} tried`);
+          if (h.reactions.length) out += `<div style="font-size:13px;color:#c94a3b;font-weight:600;margin-bottom:6px">⚠️ Reactions to: ${h.reactions.map(f => escHtml(f.name)).join(', ')}</div>`;
+          out += `<div style="font-size:13px;color:var(--text);line-height:1.6">${h.foods.map(f => escHtml(f.name)).join(', ')}</div><div style="height:14px"></div>`;
+        }
+        if (h.teeth) out += head('Teeth') + `<div style="font-size:13px;color:var(--text);margin-bottom:14px">${h.teeth} of 20 baby teeth in</div>`;
+        return out;
+      })()}
       <div style="font-size:12px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Recent milestones</div>
       ${logs.filter(l => l.type === 'milestone').slice(0, 5).map(ms => `
         <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(61,43,31,0.05)">
@@ -5044,6 +5288,30 @@ jsPDF } = window.jspdf;
       y += 12;
     });
   }
+
+  // Doctor & vaccines, solids, teeth
+  const hr = healthReportData();
+  const section = title => { if (y > 240) { doc.addPage(); y = 20; } y += 6; doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(61,43,31); doc.text(title, 15, y); y += 8; };
+  const line = (left, right, color) => {
+    if (y > 278) { doc.addPage(); y = 20; }
+    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(138,112,96); doc.text(left, 15, y);
+    doc.setTextColor(...(color || [61,43,31]));
+    const wrapped = doc.splitTextToSize(stripEmoji(right), W - 70);
+    doc.text(wrapped, 55, y); y += 6 * wrapped.length + 1;
+  };
+  const healthItems = [...hr.vaccines, ...hr.visits].sort((a, b) => Date.parse(b.time) - Date.parse(a.time)).slice(0, 12);
+  if (healthItems.length) {
+    section('Doctor visits & vaccines');
+    healthItems.forEach(l => line(formatDate(l.time.split('T')[0]),
+      l.healthKind === 'vaccine' ? 'Vaccines: ' + l.vaccines.join(', ') + (l.reactions?.length ? ' (reaction: ' + l.reactions.join(', ') + ')' : '') + (l.notes ? ' - ' + l.notes : '')
+                                 : l.title + (l.provider ? ' - ' + l.provider : '') + (l.notes ? ': ' + l.notes : '')));
+  }
+  if (hr.foods.length) {
+    section(`Solids (${hr.foods.length} food${hr.foods.length === 1 ? '' : 's'} tried)`);
+    if (hr.reactions.length) line('Reactions', hr.reactions.map(f => f.name).join(', '), [201,74,59]);
+    line('Foods', hr.foods.map(f => f.name).join(', '));
+  }
+  if (hr.teeth) { section('Teeth'); line('Teeth in', `${hr.teeth} of 20`); }
 
   // Footer
   doc.setFontSize(9); doc.setTextColor(196,121,90);
