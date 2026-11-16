@@ -11,7 +11,7 @@
 const acorn = require('acorn'), walk = require('acorn-walk'), fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..');
 const files = process.argv.length > 2 ? process.argv.slice(2)
-  : [...fs.readFileSync(path.join(root, 'index.html'), 'utf8').matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m => path.join(root, m[1]));
+  : [...fs.readFileSync(path.join(root, 'index.html'), 'utf8').matchAll(/<script (?:defer )?src="(js\/[^"]+)"><\/script>/g)].map(m => path.join(root, m[1]));
 const parsed = files.map(f => ({ f, ast: acorn.parse(fs.readFileSync(f, 'utf8'), { ecmaVersion: 2022, sourceType: 'script', locations: true }) }));
 const declaredIn = {};   // name -> [{file index, kind}]
 parsed.forEach(({ ast }, i) => {
