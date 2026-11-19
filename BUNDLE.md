@@ -44,7 +44,8 @@ Netlify's free plan ran out of deploy credits on 2026-11-16; they reset on
   so; reinstalling is instant).
 - "Baby tracker" wording replaced with "Baby care companion": logo tagline
   (BABY CARE COMPANION), app name on phones / search, PDF footers, privacy
-  page; "track" softened elsewhere ("Start tracking" -> "Let's begin").
+  page; "track" softened elsewhere ("Start tracking" -> "Let's begin"),
+  except the Pump option, which keeps "Track volume".
 
 ## Ship checklist (on or after 2026-12-15)
 1. Check credits: Netlify → team → Usage & billing.
