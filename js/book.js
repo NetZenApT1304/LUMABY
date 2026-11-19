@@ -55,7 +55,7 @@ function renderBook() {
     <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--deep-brown);margin-bottom:12px">Preview chapters</div>
     <div class="book-preview-strip">
       <div class="preview-page" style="background:linear-gradient(135deg,#c4795a,#d4a5a0)" onclick="scrollToChapter(0)">
-        <span>🌸</span><p>Cover</p>
+        <img src="brand/logo-mark.svg" alt="" width="34" height="34" style="display:block;margin:0 auto"><p>Cover</p>
       </div>
       ${previewColors.map((m,i) => `
         <div class="preview-page" style="background:${CHAPTER_COLORS[i % CHAPTER_COLORS.length]}22;border:2px solid ${CHAPTER_COLORS[i % CHAPTER_COLORS.length]}44" onclick="scrollToChapter(${i})">
@@ -522,7 +522,7 @@ async function generatePDF(forPrint = false) {
     doc.addPage();
     doc.setFillColor(253,246,238);
     doc.rect(0,0,W,H,'F');
-    doc.setFontSize(48); doc.text('🌸', W/2, H/2 - 20, { align:'center' });
+    await addBrandMark(doc, 'brand/logo-mark.png', W/2 - 18, H/2 - 52, 36);
     doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(196,121,90);
     doc.text('Made with love', W/2, H/2 + 10, { align:'center' });
     doc.setFontSize(12); doc.setFont('helvetica','normal'); doc.setTextColor(138,112,96);

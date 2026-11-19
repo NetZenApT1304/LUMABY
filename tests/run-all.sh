@@ -31,6 +31,7 @@ run more-tracking node tests/e2e/moretrack.js "$OUT" "$URL"
 run quick-log     node tests/e2e/quick.js "$OUT" "$URL"
 run appointments  node tests/e2e/appointments.js "$OUT" "$URL"
 run remind-times  node tests/e2e/remtimes.js "$OUT" "$URL"
+run brand         node tests/e2e/brand.js "$URL"
 run offline       node tests/e2e/offline.js "$URL"
 run keyboard      node tests/e2e/keyboard.js "$OUT" "$URL"
 printf '%-16s ' "axe audit"; axe_out=$(node tests/e2e/a11y.js "$URL" 2>&1); echo "$axe_out" | head -1; echo "$axe_out" | grep -q "^axe: 0 distinct" || { fail=1; echo "$axe_out" | sed -n '2,12p' | sed 's/^/    /'; }

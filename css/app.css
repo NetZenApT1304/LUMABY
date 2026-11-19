@@ -73,8 +73,17 @@ body::after {
   padding: 40px 28px; text-align: center;
 }
 #auth-screen.visible { display: flex; }
-.auth-logo { font-size: 64px; margin-bottom: 20px; animation: bounce 2s infinite; }
-.auth-title { font-family: "Playfair Display", serif; font-size: 32px; color: var(--deep-brown); margin-bottom: 8px; }
+/* Logo lockup (brand/BRAND.md): the blossom mark, "Lumaby" in Playfair
+   Display SemiBold, BABY TRACKER in DM Sans Medium with 3px spacing. */
+.brand-lockup { display: flex; flex-direction: column; align-items: center; margin-bottom: 18px; animation: brandIn 0.7s ease-out both; }
+.brand-mark { width: 88px; height: 88px; display: block; margin-bottom: 14px; }
+.brand-night { display: none; }
+html.night .brand-day { display: none; }
+html.night .brand-night { display: block; }
+.brand-wordmark { font-family: "Playfair Display", serif; font-weight: 600; font-size: 36px; letter-spacing: -0.5px; color: var(--deep-brown); line-height: 1.1; }
+.brand-tagline { font-family: "DM Sans", sans-serif; font-weight: 500; font-size: 11px; letter-spacing: 3px; color: #6f5a4b; margin-top: 6px; padding-left: 3px; }
+html.night .brand-tagline { color: var(--text-light); }
+@keyframes brandIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
 .auth-sub { font-size: 14px; color: var(--text-light); margin-bottom: 32px; line-height: 1.6; }
 .auth-tabs {
   display: flex; width: 100%; background: rgba(61,43,31,0.06);
@@ -538,7 +547,6 @@ input:checked + .toggle-slider::before { transform: translateX(20px); }
   text-align: center; gap: 0;
 }
 #onboarding.hidden { display: none; }
-.onboard-emoji { font-size: 72px; margin-bottom: 24px; animation: bounce 2s infinite; }
 @keyframes bounce { 0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)} }
 .onboard-title {
   font-family: 'Playfair Display', serif;

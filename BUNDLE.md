@@ -30,6 +30,18 @@ Netlify's free plan ran out of deploy credits on 2026-11-16; they reset on
   Reminders). No database change needed: appointments are ordinary synced
   logs (type `appointment`). Tests: `tests/e2e/appointments.js` and 12 new
   unit checks.
+- New logo (the notched blossom, from the brand kit; same name). Files in
+  `brand/` (SVG masters + BRAND.md) and `icons/` (app icons, new maskable
+  Android icons, 180px apple-touch-icon, favicon). Sign-in and welcome
+  screens show the logo lockup (mark + "Lumaby" + BABY TRACKER), with the
+  on-brown mark in night mode. The PDF report header and baby book back
+  cover use the mark (PDFs couldn't draw the old 🌸 emoji). Notifications
+  get a one-colour badge (`icons/badge-96.png`). Icons were recompressed
+  losslessly (pixel-identical, about 4x smaller). `store-icon-1024.png` is
+  for the App Store / Google Play listings, not used by the web app. Test:
+  `tests/e2e/brand.js`. After release, installed apps pick up the new home
+  screen icon when the phone next checks the manifest (can take a day or
+  so; reinstalling is instant).
 
 ## Ship checklist (on or after 2026-12-15)
 1. Check credits: Netlify → team → Usage & billing.

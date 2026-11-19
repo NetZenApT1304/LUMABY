@@ -2,7 +2,7 @@
 // Bump APP_VERSION on every deploy that changes precached files so old
 // caches are deleted on activate.
 
-const APP_VERSION = '1.0.9';
+const APP_VERSION = '1.1.0';
 const CACHE_NAME = `lumaby-v${APP_VERSION}`;
 const OFFLINE_URL = '/index.html';
 
@@ -28,6 +28,9 @@ const PRECACHE_URLS = [
   '/js/temp-report.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/icons/badge-96.png',
+  '/brand/logo-mark.svg',
+  '/brand/logo-mark-onbrown.svg',
   '/fonts/dm-sans-normal-latin.woff2',
   '/fonts/playfair-display-normal-latin.woff2',
   '/fonts/playfair-display-italic-latin.woff2',
@@ -158,7 +161,7 @@ self.addEventListener('push', event => {
   const options = {
     body: data.body || 'Time to check on baby 🌸',
     icon: '/icons/icon-192.png',
-    badge: '/icons/icon-72.png',
+    badge: '/icons/badge-96.png',    // one-colour silhouette (Android shows only its shape)
     vibrate: [100, 50, 100],
     tag: data.tag || undefined,     // a newer reminder of the same kind replaces the old one
     renotify: !!data.tag,

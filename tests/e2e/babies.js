@@ -59,9 +59,15 @@ const switchTo = (p, name) => p.evaluate(n => switchBaby(babies.findIndex(b => b
   await A.evaluate(() => deleteLog(logs.find(l => l.title === 'Luna feed 2').id));
   v = await view(A);
   check('deleting one of Luna\'s logs leaves Milo\'s alone', v.logs.join() === 'Luna feed 1' && v.all === 2, JSON.stringify(v));
-  await sleep(4000);
-  const db = sql(`select l.title, b.name from logs l left join babies b on b.id = l.baby_id where l.user_id='${uid}' and not l.deleted order by 1`);
-  check('database: each log linked to the right baby', JSON.stringify(db) === JSON.stringify([{ title: 'Luna feed 1', name: 'Luna' }, { title: 'Milo feed 1', name: 'Milo' }]), JSON.stringify(db));
+  // wait for the sync (up to 15s; it is usually done in 2-3s)
+  const wantDb = JSON.stringify([{ title: 'Luna feed 1', name: 'Luna' }, { title: 'Milo feed 1', name: 'Milo' }]);
+  let db;
+  for (let i = 0; i < 15; i++) {
+    await sleep(1000);
+    db = sql(`select l.title, b.name from logs l left join babies b on b.id = l.baby_id where l.user_id='${uid}' and not l.deleted order by 1`);
+    if (JSON.stringify(db) === wantDb) break;
+  }
+  check('database: each log linked to the right baby', JSON.stringify(db) === wantDb, JSON.stringify(db));
 
   // ── 3. Second device gets both babies with separate timelines ──
   const B2 = await newPage(b);

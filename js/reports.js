@@ -1,4 +1,20 @@
 // Lumaby — Pediatrician report, sleep coach, pump totals.
+
+// The Lumaby blossom as a PNG data URL for jsPDF (PDFs can't draw the
+// emoji we used before). Fetched once; skipped quietly if it can't load.
+const brandPngCache = {};
+async function brandPng(src) {
+  if (!(src in brandPngCache)) {
+    brandPngCache[src] = await fetch(src).then(r => r.ok ? r.blob() : null)
+      .then(b => b && new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(null); fr.readAsDataURL(b); }))
+      .catch(() => null);
+  }
+  return brandPngCache[src];
+}
+async function addBrandMark(doc, src, x, y, size) {
+  const png = await brandPng(src);
+  if (png) doc.addImage(png, 'PNG', x, y, size, size);
+}
 // One part of the app script, loaded in order by index.html. All parts share one
 // global scope; run `node tools/check-split.js` after moving code between files.
 //  PEDIATRICIAN REPORT
@@ -124,6 +140,7 @@ jsPDF } = window.jspdf;
   // Header
   doc.setFillColor(61, 43, 31);
   doc.rect(0, 0, W, 35, 'F');
+  await addBrandMark(doc, 'brand/logo-mark-onbrown.png', W - 37, 5, 25);
   doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
   doc.text((profile?.baby || 'Baby') + ' — Pediatrician Report', 15, 20);
   doc.setFontSize(10); doc.setFont('helvetica','normal');
