@@ -47,6 +47,15 @@ let pass = 0, fail = 0; const check = (l, ok, x = '') => { ok ? pass++ : fail++;
     await p.evaluate(() => skipAuth()); await p.waitForTimeout(700);
     check(`welcome (${mode === 'on' ? 'night' : 'day'}): ${want}`, JSON.stringify(await shown('#onboarding')) === JSON.stringify([want]));
   }
+  // Sign in with Apple appears only when Apple is turned on in Supabase
+  await p.evaluate(() => { localStorage.clear(); localStorage.setItem('bloom_nightMode', '"off"'); });
+  await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
+  check('Apple button hidden while Apple sign-in is off in Supabase', !(await p.locator('#btn-apple').isVisible()));
+  await p.route('**/auth/v1/settings', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ external: { google: true, apple: true, email: true } }) }));
+  await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(500);
+  check('Apple button shows once it is turned on', await p.locator('#btn-apple').isVisible() && (await p.locator('#btn-apple').innerText()).includes('Continue with Apple'));
+  await p.screenshot({ path: (process.env.OUT || require('os').tmpdir()) + '/auth-apple.png' });
+  await p.unroute('**/auth/v1/settings');
   check('no 🌸 left where the logo used to be', !(await p.content()).includes('auth-logo') && !(await p.content()).includes('onboard-emoji'));
   check('no page errors', !errors.length, errors.join(' | '));
   console.log(`\n${pass} passed, ${fail} failed`);

@@ -161,6 +161,23 @@ async function signInWithGoogle() {
   }
 }
 
+// Apple requires "Sign in with Apple" in iPhone apps that offer Google
+// sign-in. The button appears by itself once Apple is turned on in Supabase.
+async function signInWithApple() {
+  if (!supabaseClient) return;
+  const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: window.location.origin } });
+  if (error) showAuthError(error.message || 'Apple sign-in failed.');
+}
+async function showEnabledProviders() {
+  try {
+    const r = await fetch(CONFIG.supabase.url + '/auth/v1/settings', { headers: { apikey: CONFIG.supabase.anonKey } });
+    const ext = (await r.json()).external || {};
+    const btn = document.getElementById('btn-apple');
+    if (btn) btn.hidden = !ext.apple;
+  } catch (e) { /* offline: keep it hidden */ }
+}
+if (navigator.onLine !== false) showEnabledProviders();
+
 function skipAuth() {
   const authEl = document.getElementById('auth-screen');
   if (authEl) { authEl.style.cssText = 'display:none!important'; authEl.classList.remove('visible'); }
@@ -454,6 +471,7 @@ function showAccountModal() {
         📤 Export my data (CSV) ✨ Premium
       </button>`}
       <button class="btn-danger" onclick="signOut()">Sign Out</button>
+      <button class="btn-link-danger" onclick="showDeleteAccount()">Delete account</button>
     ` : `
       <button class="btn-primary btn-full" style="margin-top:10px" onclick="closeModal('modal-account');document.getElementById('auth-screen').classList.add('visible')">
         Sign In / Create Account
@@ -473,20 +491,46 @@ async function signOut() {
   updatePremiumBadge();
 }
 
-async function manageSubscription() {
-  if (!currentUser) return;
-  try {
-    const res = await fetch(CONFIG.functions.manageSubscription, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser.id, email: currentUser.email })
-    });
-    const { url } = await res.json();
-    window.location.href = url;
-  } catch(e) {
-    showToast('⚠️ Could not open subscription portal');
-  }
+// ── Delete my account (App Store / Google Play requirement) ──
+function showDeleteAccount() {
+  closeModal('modal-account');
+  const body = document.getElementById('delete-account-body');
+  body.innerHTML = `
+    <p class="del-text">This permanently deletes your Lumaby account and everything in it:
+      ${escHtml(profile?.baby || 'your baby')}'s logs, growth, milestones, appointments and reminders,
+      on every device. Partners you've shared with lose access. This can't be undone.</p>
+    ${isPremium ? '<p class="del-text">Want a copy first? Use <strong>Export my data</strong> in My Account.</p>' : ''}
+    <div class="form-group"><label>Type DELETE to confirm</label>
+      <input class="form-input" id="del-confirm" autocomplete="off" autocapitalize="characters" oninput="document.getElementById('del-go').disabled = this.value.trim().toUpperCase() !== 'DELETE'"/></div>
+    <div class="auth-error" id="del-error"></div>
+    <button class="btn-danger-solid btn-full" id="del-go" disabled onclick="deleteMyAccount()">Delete my account</button>
+    <button class="btn-sec btn-full" style="margin-top:10px" onclick="closeModal('modal-delete-account')">Keep my account</button>`;
+  openModal('modal-delete-account');
 }
+async function deleteMyAccount() {
+  const btn = document.getElementById('del-go'), err = document.getElementById('del-error');
+  if (!supabaseClient || !currentUser) return;
+  btn.disabled = true; btn.textContent = 'Deleting…'; err.style.display = 'none';
+  const { error } = await supabaseClient.rpc('delete_my_account');
+  if (error) {
+    btn.disabled = false; btn.textContent = 'Delete my account';
+    err.innerHTML = /active_subscription/.test(error.message)
+      ? 'Your Premium subscription is still active. Cancel it first so you aren\'t charged again, then delete your account. <a href="https://app.lemonsqueezy.com/my-orders" target="_blank" rel="noopener">Manage subscription</a>'
+      : 'Couldn\'t delete your account. Check your connection and try again.';
+    err.style.display = 'block';
+    return;
+  }
+  // Gone on the server: stop this device's notifications, wipe local data
+  // (including the saved login) and start fresh.
+  try { if (typeof removePushSubscriptionForDevice === 'function') await removePushSubscriptionForDevice(); } catch (e) {}
+  try { sessionStorage.setItem('lumaby_deleted', '1'); } catch (e) {}
+  localStorage.clear();
+  location.reload();
+}
+// After the reload: confirm it happened.
+document.addEventListener('DOMContentLoaded', () => {
+  try { if (sessionStorage.getItem('lumaby_deleted')) { sessionStorage.removeItem('lumaby_deleted'); setTimeout(() => showToast('Your account and data were deleted'), 800); } } catch (e) {}
+});
 
 // =======================================
 //  EXPORT DATA (free feature)

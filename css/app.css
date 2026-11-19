@@ -106,6 +106,12 @@ html.night .brand-tagline { color: var(--text-light); }
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   gap: 10px; transition: all 0.2s; font-family: "DM Sans", sans-serif;
 }
+.btn-apple {
+  width: 100%; padding: 14px; margin-top: 10px; background: #000; color: #fff; border: none; border-radius: 16px;
+  font: 600 14px "DM Sans", sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.btn-apple[hidden] { display: none; }
+html.night .btn-apple { background: #fff; color: #000; }
 .btn-google:hover { border-color: var(--terracotta); transform: translateY(-1px); }
 .auth-error {
   background: rgba(196,121,90,0.1); border: 1px solid rgba(196,121,90,0.3);
@@ -201,6 +207,12 @@ html.night .brand-tagline { color: var(--text-light); }
   font-size: 14px; font-weight: 600; color: #c45a5a; cursor: pointer;
   font-family: "DM Sans", sans-serif; transition: all 0.2s; margin-top: 8px;
 }
+.btn-link-danger { display: block; margin: 14px auto 0; background: none; border: none; color: #a33a3a; font: 500 13px 'DM Sans', sans-serif; text-decoration: underline; cursor: pointer; padding: 8px; }
+.btn-danger-solid { background: #a33a3a; color: #fff; border: none; border-radius: 16px; padding: 16px; font: 600 15px 'DM Sans', sans-serif; cursor: pointer; }
+.btn-danger-solid:disabled { opacity: 0.45; cursor: not-allowed; }
+.del-text { font-size: 14px; color: var(--text); line-height: 1.6; margin-bottom: 14px; }
+html.night .btn-link-danger { color: #e48a8a; }
+html.night .btn-danger-solid { background: #b44c4c; }
 .btn-danger:hover { background: rgba(196,90,90,0.06); }
 .spinner {
   width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4);

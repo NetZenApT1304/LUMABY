@@ -46,6 +46,13 @@ Netlify's free plan ran out of deploy credits on 2026-11-16; they reset on
   (BABY CARE COMPANION), app name on phones / search, PDF footers, privacy
   page; "track" softened elsewhere ("Start tracking" -> "Let's begin"),
   except the Pump option, which keeps "Track volume".
+- App store prep (see STORES.md): Delete my account (My Account → Delete
+  account; DB function in 005_account_deletion.sql, already applied; blocks
+  while a subscription will renew), deletion section on the privacy page,
+  Sign in with Apple button (shows once Apple is enabled in Supabase), store
+  screenshot generator (tools/store-screenshots.js). Fixed: "Manage
+  Subscription" was defined twice and the second copy called a missing
+  server function, so the button failed. Test: tests/e2e/deleteaccount.js.
 
 ## Ship checklist (on or after 2026-12-15)
 1. Check credits: Netlify → team → Usage & billing.
