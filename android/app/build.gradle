@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Signing: the upload key lives outside the repo. Point to it with
+// android/keystore.properties (git-ignored):
+//   storeFile=/path/to/lumaby-upload.jks
+//   storePassword=...
+//   keyAlias=lumaby-upload
+//   keyPassword=...
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file('keystore.properties')
+if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProps.load(it) }
+
+android {
+    namespace 'com.lumaby.app'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.lumaby.app'
+        minSdk 23
+        targetSdk 36
+        // Bump both for every Play upload: versionCode by 1, versionName as you like.
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    signingConfigs {
+        if (keystoreProps['storeFile']) {
+            upload {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            if (keystoreProps['storeFile']) signingConfig signingConfigs.upload
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
+}

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon: same one-tap actions as the web app's shortcuts. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="feed" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_feed">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.lumaby.app"
+            android:targetClass="com.google.androidbrowserhelper.trusted.LauncherActivity" android:data="https://lumabyy.netlify.app/?quick=feed"/>
+    </shortcut>
+    <shortcut android:shortcutId="wet" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_wet">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.lumaby.app"
+            android:targetClass="com.google.androidbrowserhelper.trusted.LauncherActivity" android:data="https://lumabyy.netlify.app/?quick=diaper-wet"/>
+    </shortcut>
+    <shortcut android:shortcutId="dirty" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_dirty">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.lumaby.app"
+            android:targetClass="com.google.androidbrowserhelper.trusted.LauncherActivity" android:data="https://lumabyy.netlify.app/?quick=diaper-dirty"/>
+    </shortcut>
+    <shortcut android:shortcutId="sleep" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_sleep">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.lumaby.app"
+            android:targetClass="com.google.androidbrowserhelper.trusted.LauncherActivity" android:data="https://lumabyy.netlify.app/?quick=sleep"/>
+    </shortcut>
+</shortcuts>

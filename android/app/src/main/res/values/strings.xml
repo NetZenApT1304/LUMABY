@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Lumaby</string>
+    <string name="launch_url">https://lumabyy.netlify.app/</string>
+    <string name="host">lumabyy.netlify.app</string>
+    <!-- Digital Asset Links: proves this app and the website belong together,
+         so the app opens full-screen without a browser address bar. The site
+         publishes the matching /.well-known/assetlinks.json. -->
+    <string name="asset_statements" translatable="false">[{\"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://lumabyy.netlify.app\"}}]</string>
+    <string name="shortcut_feed">Repeat last feed</string>
+    <string name="shortcut_wet">Wet diaper</string>
+    <string name="shortcut_dirty">Dirty diaper</string>
+    <string name="shortcut_sleep">Start sleep timer</string>
+</resources>

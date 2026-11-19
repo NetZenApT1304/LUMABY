@@ -29,6 +29,10 @@ let pass = 0, fail = 0; const check = (l, ok, x = '') => { ok ? pass++ : fail++;
   const sw = await (await p.request.get(ROOT + 'sw.js')).text();
   const missing = [];
   for (const u of [...sw.matchAll(/'(\/(?:icons|brand)\/[^']+)'/g)].map(m => m[1])) if (!(await p.request.get(new URL(u.slice(1), ROOT).href)).ok()) missing.push(u);
+  const links = await (await p.request.get(ROOT + '.well-known/assetlinks.json')).json().catch(() => null);
+  const gradle = require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'android', 'app', 'build.gradle'), 'utf8');
+  const appId = (gradle.match(/applicationId '([^']+)'/) || [])[1];
+  check('assetlinks.json names the Android app and its signing key', links?.[0]?.target?.package_name === appId && /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(links[0].target.sha256_cert_fingerprints[0]), appId);
   check('service worker only points at files that exist', !missing.length, missing.join(', '));
 
   for (const mode of ['off', 'on']) {

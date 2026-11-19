@@ -13,6 +13,10 @@ Status and checklist for getting Lumaby into the stores. The web app
       because we offer Google sign-in.
 - [x] Store icons: `icons/icon-512.png` (Google Play), `icons/store-icon-1024.png` (App Store).
 - [x] Maskable Android icons and manifest set up for the Android wrapper.
+- [x] **Android app built** (`android/`, see android/README.md): package
+      `com.lumaby.app`, version 1.0.0 (code 1), targets Android 16 (API 36).
+      Signed with the upload key; `.aab` for Play and `.apk` for testing.
+      `/.well-known/assetlinks.json` added (upload key fingerprint).
 - [x] Screenshots: `node tools/store-screenshots.js <folder>` makes
       Google Play (1080×1920) and App Store (1290×2796) sets from a demo baby.
 
@@ -22,23 +26,17 @@ Status and checklist for getting Lumaby into the stores. The web app
 2. **Apple Developer Program:** developer.apple.com, $99/year. Needed for
    the App Store and for Sign in with Apple.
 3. **Decide how Premium is sold inside the store apps** (see "Payments").
-4. **Android SDK licence:** building the Android app needs Google's Android
-   SDK, whose licence must be accepted by you (not by Claude). Options:
-   accept it in a session (Claude runs `sdkmanager --licenses` with your
-   go-ahead), or build on your own computer with Android Studio, or let
-   PWABuilder.com build the package.
+4. **Keep the upload key safe:** `lumaby-upload.jks` + `lumaby-upload-key.txt`
+   (password). Not in the repo. Password manager + a backup.
 5. **Find 12 Android testers** for the 14-day closed test (new personal
    Play accounts must do this before going public).
 
 ## Android (Google Play): steps
-1. Build the Trusted Web Activity package (Bubblewrap / PWABuilder) for
-   `https://lumabyy.netlify.app/`, package id **`com.lumaby.app`**
-   (permanent once uploaded; change it before the first upload if you want).
-2. Keep the signing ("upload") key safe. Losing it means a support
-   request to Google to reset it.
-3. Publish `/.well-known/assetlinks.json` with the SHA-256 fingerprints of
-   the upload key **and** Google's app-signing key (Play Console → Setup →
-   App signing). Without it the app shows a browser address bar.
+1. ~~Build the app~~ done: `android/app/build/outputs/bundle/release/app-release.aab`.
+2. ~~Upload key~~ done; keep it safe.
+3. ~~assetlinks.json~~ done for the upload key. After the first upload, add
+   Google's app-signing key fingerprint (Play Console → App integrity →
+   App signing) and deploy. Without it the app shows a browser address bar.
 4. Play Console: create the app, fill in the store listing (below), Data
    safety (below), content rating, target audience **18+**, category
    **Parenting**, privacy policy `https://lumabyy.netlify.app/privacy.html`,
@@ -58,6 +56,10 @@ Status and checklist for getting Lumaby into the stores. The web app
    rating, a demo account for the reviewer.
 
 ## Payments (decide before submitting)
+Note for option A on Android: Google's TWA helper has a Play Billing
+add-on (`com.google.androidbrowserhelper:billing`, Digital Goods API), so
+the web app can sell through Google Play without a native rewrite.
+
 Both stores generally require their own in-app purchase system for digital
 subscriptions bought inside the app (15% fee for small developers). Lemon
 Squeezy checkout inside the store apps can get them rejected. The US has

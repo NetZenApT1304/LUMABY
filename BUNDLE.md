@@ -53,6 +53,9 @@ Netlify's free plan ran out of deploy credits on 2026-11-16; they reset on
   screenshot generator (tools/store-screenshots.js). Fixed: "Manage
   Subscription" was defined twice and the second copy called a missing
   server function, so the button failed. Test: tests/e2e/deleteaccount.js.
+- Android app (android/, Trusted Web Activity, com.lumaby.app 1.0.0) and
+  /.well-known/assetlinks.json (served as JSON via netlify.toml). The
+  Play-installed app opens full-screen only once assetlinks.json is live.
 
 ## Ship checklist (on or after 2026-12-15)
 1. Check credits: Netlify → team → Usage & billing.

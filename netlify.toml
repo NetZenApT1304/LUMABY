@@ -26,6 +26,13 @@
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
     X-Permitted-Cross-Domain-Policies = "none"
 
+# Android app link verification (Google Play app); must be served as JSON
+[[headers]]
+  for = "/.well-known/assetlinks.json"
+  [headers.values]
+    Content-Type = "application/json"
+    Access-Control-Allow-Origin = "*"
+
 [[headers]]
   for = "/sw.js"
   [headers.values]

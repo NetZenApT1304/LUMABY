@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.lumaby.app",
+      "sha256_cert_fingerprints": [
+        "B1:38:3C:28:B4:94:26:DE:BE:29:95:3C:22:67:59:CE:AD:B8:9D:CF:B5:A1:08:39:78:08:00:6F:CF:A4:F4:4F"
+      ]
+    }
+  }
+]
