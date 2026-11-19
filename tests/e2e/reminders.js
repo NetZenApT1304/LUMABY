@@ -17,7 +17,7 @@ let pass = 0, fail = 0; const check = (l, ok, x = '') => { ok ? pass++ : fail++;
   const uid = await p.evaluate(() => currentUser.id);
   sql(`insert into public.subscriptions (user_id, status, plan) values ('${uid}', 'trialing', 'monthly')`);
   await p.reload({ waitUntil: 'networkidle' }); await sleep(4000);
-  await p.fill('#ob-parent', 'Sam'); await p.fill('#ob-baby', 'Luna'); await p.click('text=Start tracking'); await sleep(2000);
+  await p.fill('#ob-parent', 'Sam'); await p.fill('#ob-baby', 'Luna'); await p.click("text=Let's begin"); await sleep(2000);
 
   // Headless Chromium has no real push service, so stand in for the browser's subscribe().
   const realSubscribe = await p.evaluate(async () => {

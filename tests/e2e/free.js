@@ -7,7 +7,7 @@ const S = process.argv[2]; const sql = q => JSON.parse(execFileSync(require('pat
   await p.click('text=Create Account');
   await p.fill('#auth-email', `lumaby-e2e-free-${Date.now()}@mailinator.com`); await p.fill('#auth-password', 'Free-pass-12345'); await p.click('#auth-submit-btn');
   await new Promise(r => setTimeout(r, 4000));
-  await p.fill('#ob-parent', 'Free Parent'); await p.fill('#ob-baby', 'Milo'); await p.click('text=Start tracking');
+  await p.fill('#ob-parent', 'Free Parent'); await p.fill('#ob-baby', 'Milo'); await p.click("text=Let's begin");
   await new Promise(r => setTimeout(r, 2000));
   await p.evaluate(() => pushLog({ id: uid(), type: 'feed', icon: '🍼', title: 'Free feed', detail: '3oz', time: new Date().toISOString() }));
   await new Promise(r => setTimeout(r, 3000));

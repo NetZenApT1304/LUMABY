@@ -42,6 +42,9 @@ Netlify's free plan ran out of deploy credits on 2026-11-16; they reset on
   `tests/e2e/brand.js`. After release, installed apps pick up the new home
   screen icon when the phone next checks the manifest (can take a day or
   so; reinstalling is instant).
+- "Baby tracker" wording replaced with "Baby care companion": logo tagline
+  (BABY CARE COMPANION), app name on phones / search, PDF footers, privacy
+  page; "track" softened elsewhere ("Start tracking" -> "Let's begin").
 
 ## Ship checklist (on or after 2026-12-15)
 1. Check credits: Netlify → team → Usage & billing.

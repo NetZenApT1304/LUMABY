@@ -37,7 +37,7 @@ const state = p => p.evaluate(() => ({
   if (s.onboarding) {
     await A.fill('#ob-parent', 'Parent A').catch(() => {});
     await A.fill('#ob-baby', 'Luna').catch(() => {});
-    await A.click('text=Start tracking'); await sleep(2500);
+    await A.click("text=Let's begin"); await sleep(2500);
   }
   await A.evaluate(() => {
     pushLog({ id: uid(), type: 'feed', icon: '🍼', title: 'Feed A1', detail: '4oz', time: new Date().toISOString(), oz: 4 });

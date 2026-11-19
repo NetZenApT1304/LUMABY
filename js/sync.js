@@ -485,7 +485,7 @@ async function createPartnerInvite() {
 
 async function sharePartnerInvite(code) {
   const link = `${window.location.origin}/?join=${code}`;
-  const text = `Join me on Lumaby to track ${profile?.baby || 'our baby'} together. Open ${link} or enter code ${code}.`;
+  const text = `Join me on Lumaby to look after ${profile?.baby || 'our baby'} together. Open ${link} or enter code ${code}.`;
   try {
     if (navigator.share) { await navigator.share({ title: 'Lumaby invite', text, url: link }); return; }
   } catch (e) { if (e && e.name === 'AbortError') return; }

@@ -2,7 +2,7 @@
 
 **Mark:** the notched blossom. Five notched petals, one lit (upper right, with a soft gold glow), glowing gold center. Never recolor the lit petal or rotate the flower.
 
-**Wordmark:** "Lumaby" in Playfair Display SemiBold, with BABY TRACKER in DM Sans Medium, 3px letter-spacing, underneath. Classic lockup only.
+**Wordmark:** "Lumaby" in Playfair Display SemiBold, with BABY CARE COMPANION in DM Sans Medium, 3px letter-spacing, underneath. Classic lockup only.
 
 | Color | Hex |
 |---|---|

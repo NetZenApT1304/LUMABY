@@ -39,7 +39,7 @@ const switchTo = (p, name) => p.evaluate(n => switchBaby(babies.findIndex(b => b
   const uid = await A.evaluate(() => currentUser.id);
   sql(`insert into public.subscriptions (user_id, status, plan) values ('${uid}', 'trialing', 'monthly')`);
   await A.reload({ waitUntil: 'networkidle' }); await sleep(4000);
-  await A.fill('#ob-parent', 'Sam'); await A.fill('#ob-baby', 'Luna'); await A.click('text=Start tracking'); await sleep(2000);
+  await A.fill('#ob-parent', 'Sam'); await A.fill('#ob-baby', 'Luna'); await A.click("text=Let's begin"); await sleep(2000);
   await addLog(A, 'Luna feed 1'); await addLog(A, 'Luna feed 2');
   await A.evaluate(() => { babies.push({ id: uid(), baby: 'Milo', dob: '2026-09-01', emoji: '⭐', parent: 'Sam' }); saveBabies(); switchBaby(babies.length - 1); });
   await sleep(500);

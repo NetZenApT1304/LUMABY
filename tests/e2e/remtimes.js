@@ -16,7 +16,7 @@ let pass = 0, fail = 0; const check = (l, ok, x = '') => { ok ? pass++ : fail++;
   const uid = await p.evaluate(() => currentUser.id);
   sql(`insert into public.subscriptions (user_id, status, plan) values ('${uid}', 'trialing', 'monthly')`);
   await p.reload({ waitUntil: 'networkidle' }); await sleep(4000);
-  await p.fill('#ob-parent', 'Sam'); await p.fill('#ob-baby', 'Luna'); await p.click('text=Start tracking'); await sleep(1500);
+  await p.fill('#ob-parent', 'Sam'); await p.fill('#ob-baby', 'Luna'); await p.click("text=Let's begin"); await sleep(1500);
   check('old single medicine time carried over', JSON.stringify(await p.evaluate(() => reminders.medsTimes)) === '["09:15"]');
 
   await p.evaluate(() => showRemindersModal()); await sleep(400);

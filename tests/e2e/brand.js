@@ -36,10 +36,10 @@ let pass = 0, fail = 0; const check = (l, ok, x = '') => { ok ? pass++ : fail++;
     await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(900);
     const want = mode === 'on' ? 'logo-mark-onbrown.svg' : 'logo-mark.svg';
     const shown = async sel => p.evaluate(s => [...document.querySelectorAll(s + ' .brand-mark')].filter(i => i.offsetParent && i.complete && i.naturalWidth).map(i => i.getAttribute('src').split('/').pop()), sel);
-    check(`sign-in (${mode === 'on' ? 'night' : 'day'}): ${want}, "Lumaby" + BABY TRACKER`,
+    check(`sign-in (${mode === 'on' ? 'night' : 'day'}): ${want}, "Lumaby" + BABY CARE COMPANION`,
       JSON.stringify(await shown('#auth-screen')) === JSON.stringify([want]) &&
       await p.locator('#auth-screen .brand-wordmark').innerText() === 'Lumaby' &&
-      await p.locator('#auth-screen .brand-tagline').innerText() === 'BABY TRACKER');
+      await p.locator('#auth-screen .brand-tagline').innerText() === 'BABY CARE COMPANION');
     if (mode === 'off') {
       const f = await p.locator('.brand-wordmark').first().evaluate(e => { const s = getComputedStyle(e); return [s.fontFamily.split(',')[0].replace(/"/g, ''), s.fontWeight, s.letterSpacing].join('|'); });
       check('wordmark is Playfair Display 600, -0.5px', f === 'Playfair Display|600|-0.5px', f);

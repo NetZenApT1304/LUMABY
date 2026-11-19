@@ -1,7 +1,7 @@
 {
-  "name": "Lumaby — Baby Tracker",
+  "name": "Lumaby — Baby Care Companion",
   "short_name": "Lumaby",
-  "description": "Track every precious moment with your baby. Sleep, feeds, diapers, milestones and growth in one beautiful app.",
+  "description": "A calm companion for your baby's first years. Sleep, feeds, diapers, milestones and growth in one beautiful app.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fdf6ee",

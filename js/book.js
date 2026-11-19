@@ -340,7 +340,7 @@ async function generatePDF(forPrint = false) {
 
     doc.setFontSize(10);
     doc.setFont('helvetica','normal');
-    doc.text('Made with Lumaby Baby Tracker', W/2, H - 8, { align: 'center' });
+    doc.text('Made with Lumaby · Baby Care Companion', W/2, H - 8, { align: 'center' });
 
     await step(2, 'Building month chapters...');
 
@@ -446,7 +446,7 @@ async function generatePDF(forPrint = false) {
       // Page footer
       doc.setFontSize(9);
       doc.setTextColor(196,121,90);
-      doc.text('Page ' + (mi + 2) + ' · Lumaby Baby Tracker', W - 15, H - 8, { align: 'right' });
+      doc.text('Page ' + (mi + 2) + ' · Lumaby', W - 15, H - 8, { align: 'right' });
     }
 
     await step(3, 'Designing final pages...');
@@ -526,7 +526,7 @@ async function generatePDF(forPrint = false) {
     doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(196,121,90);
     doc.text('Made with love', W/2, H/2 + 10, { align:'center' });
     doc.setFontSize(12); doc.setFont('helvetica','normal'); doc.setTextColor(138,112,96);
-    doc.text('Tracked with Lumaby Baby Tracker', W/2, H/2 + 24, { align:'center' });
+    doc.text('Made with Lumaby · Baby Care Companion', W/2, H/2 + 24, { align:'center' });
     doc.text('lumabyy.netlify.app', W/2, H/2 + 36, { align:'center' });
 
     await step(4, 'Generating your PDF...');

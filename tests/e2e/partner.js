@@ -34,7 +34,7 @@ const waitFor = async (fn, ms = 10000) => { for (let i = 0; i < ms / 500; i++) {
   const ownerId = await O.evaluate(() => currentUser.id);
   sql(`insert into public.subscriptions (user_id, status, plan) values ('${ownerId}', 'trialing', 'monthly')`);
   await O.reload({ waitUntil: 'networkidle' }); await sleep(4000);
-  await O.fill('#ob-parent', 'Sam'); await O.fill('#ob-baby', 'Luna'); await O.click('text=Start tracking'); await sleep(2000);
+  await O.fill('#ob-parent', 'Sam'); await O.fill('#ob-baby', 'Luna'); await O.click("text=Let's begin"); await sleep(2000);
   await addLog(O, 'Luna by owner');
   await O.evaluate(() => { babies.push({ id: uid(), baby: 'Milo', dob: '2026-09-01', emoji: '⭐', parent: 'Sam' }); saveBabies(); switchBaby(babies.length - 1); });
   await addLog(O, 'Milo secret');

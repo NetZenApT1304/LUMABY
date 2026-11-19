@@ -133,7 +133,7 @@ async function sweepState(b, state, prepare) {
     sql(`insert into public.subscriptions (user_id, status, plan) values ('${uid}', 'trialing', 'monthly')`);
     await p.reload({ waitUntil: 'networkidle' }); await sleep(4000);
     where.v = 'onboarding'; await p.screenshot({ path: `${OUT}/premium-onboarding.png` });
-    await p.fill('#ob-parent', 'Sam'); await p.fill('#ob-baby', 'Luna'); await p.click('text=Start tracking'); await sleep(2000);
+    await p.fill('#ob-parent', 'Sam'); await p.fill('#ob-baby', 'Luna'); await p.click("text=Let's begin"); await sleep(2000);
     await p.evaluate(seedLogs); await sleep(3000);
   });
   await b.close();

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://pduixzudfizustabthwu.supabase.co https://lumaby.lemonsqueezy.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://pduixzudfizustabthwu.supabase.co wss://pduixzudfizustabthwu.supabase.co https://lumabyy.netlify.app;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lumaby — Baby Tracker</title>
+<title>Lumaby — Baby Care Companion</title>
 
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json">
@@ -17,9 +17,9 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
 <!-- SEO / Share -->
-<meta name="description" content="Track every precious moment with your baby. Sleep, feeds, diapers, milestones and growth in one beautiful app.">
-<meta property="og:title" content="Lumaby — Baby Tracker">
-<meta property="og:description" content="Track every precious moment with your baby.">
+<meta name="description" content="A calm companion for your baby's first years. Sleep, feeds, diapers, milestones and growth in one beautiful app.">
+<meta property="og:title" content="Lumaby — Baby Care Companion">
+<meta property="og:description" content="A calm companion for every precious moment with your baby.">
 <meta property="og:image" content="https://lumabyy.netlify.app/icons/icon-512.png">
 <meta property="og:type" content="website">
 
@@ -194,7 +194,7 @@
   <div class="brand-lockup">
     <img class="brand-mark brand-day" src="brand/logo-mark.svg" alt="" width="88" height="88"><img class="brand-mark brand-night" src="brand/logo-mark-onbrown.svg" alt="" width="88" height="88">
     <h1 class="brand-wordmark">Lumaby</h1>
-    <div class="brand-tagline" aria-hidden="true">BABY TRACKER</div>
+    <div class="brand-tagline" aria-hidden="true">BABY CARE COMPANION</div>
   </div>
   <p class="auth-sub">Sign in to sync your data across<br>devices and unlock premium features.</p>
 
@@ -252,7 +252,7 @@
     </div>
     <div class="feature-row">
       <div class="feature-icon">👶</div>
-      <div class="feature-text"><div class="ft-title">Multiple baby profiles</div><div class="ft-sub">Track siblings in the same app</div></div>
+      <div class="feature-text"><div class="ft-title">Multiple baby profiles</div><div class="ft-sub">Siblings in the same app</div></div>
     </div>
     <div class="feature-row">
       <div class="feature-icon">♾️</div>
@@ -322,7 +322,7 @@
 <div id="onboarding" role="main">
   <div class="brand-lockup"><img class="brand-mark brand-day" src="brand/logo-mark.svg" alt="" width="88" height="88"><img class="brand-mark brand-night" src="brand/logo-mark-onbrown.svg" alt="" width="88" height="88"></div>
   <h1 class="onboard-title">Welcome to Lumaby</h1>
-  <p class="onboard-sub">Your calm, beautiful space to track<br>every precious moment with your baby.</p>
+  <p class="onboard-sub">Your calm, beautiful space for<br>every precious moment with your baby.</p>
   <div class="onboard-form">
     <div class="form-group">
       <label>Your name</label>
@@ -345,7 +345,7 @@
         </select>
       </div>
     </div>
-    <button class="btn-primary" onclick="completeOnboarding()">Start tracking ✨</button>
+    <button class="btn-primary" onclick="completeOnboarding()">Let's begin ✨</button>
     <button class="btn-sec btn-full" style="margin-top:12px" onclick="joinFromOnboarding()">👥 My partner already set up our baby</button>
   </div>
 </div>
@@ -419,7 +419,7 @@
   <!-- ── GROWTH ── -->
   <div class="screen" id="screen-growth">
     <div class="header">
-      <div><h1 style="font-family:'Playfair Display',serif;font-size:26px;color:var(--deep-brown)">Growth</h1><p style="font-size:13px;color:var(--text-light);margin-top:4px" id="growth-age-line">Track weight & height</p></div>
+      <div><h1 style="font-family:'Playfair Display',serif;font-size:26px;color:var(--deep-brown)">Growth</h1><p style="font-size:13px;color:var(--text-light);margin-top:4px" id="growth-age-line">Weight & height</p></div>
       <div class="baby-avatar" id="avatar4" onclick="showProfileModal()">🌙</div>
     </div>
     <div class="growth-content" id="growthContent"></div>
@@ -535,7 +535,7 @@
       <div class="log-opt" onclick="openLogModal('sleep')"><span class="lo-icon">😴</span><span class="lo-name">Sleep</span><span class="lo-desc">Naps & nighttime</span></div>
       <div class="log-opt" onclick="openLogModal('feed')"><span class="lo-icon">🍼</span><span class="lo-name">Feed</span><span class="lo-desc">Bottle or breast</span></div>
       <div class="log-opt" onclick="openLogModal('diaper')"><span class="lo-icon">🌿</span><span class="lo-name">Diaper</span><span class="lo-desc">Wet or dirty</span></div>
-      <div class="log-opt" onclick="openLogModal('pump')"><span class="lo-icon">🤱</span><span class="lo-name">Pump</span><span class="lo-desc">Track volume</span></div>
+      <div class="log-opt" onclick="openLogModal('pump')"><span class="lo-icon">🤱</span><span class="lo-name">Pump</span><span class="lo-desc">Volume pumped</span></div>
       <div class="log-opt" onclick="openLogModal('tummy')"><span class="lo-icon">🏋️</span><span class="lo-name">Tummy time</span><span class="lo-desc">Exercise & play</span></div>
       <div class="log-opt" onclick="openLogModal('bath')"><span class="lo-icon">🛁</span><span class="lo-name">Bath</span><span class="lo-desc">Log bath time</span></div>
       <div class="log-opt" onclick="openLogModal('meds')"><span class="lo-icon">💊</span><span class="lo-name">Medicine</span><span class="lo-desc">Dosage & type</span></div>
