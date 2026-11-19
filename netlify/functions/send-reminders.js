@@ -35,7 +35,8 @@ const daytime = (now, tz) => { const h = localParts(now, tz).h; return h >= 9 &&
 
 // ── What's due ──
 // input: { name, feeds: [ms desc], sleeps: [{start, durationMin}] desc,
-//          baths: [ms desc], growth: [ms desc] }
+//          baths: [ms desc], growth: [ms desc],
+//          appointments: [{ id, at, title, provider, remind: ['1d','2h','1h','30m'] }] }
 // settings: the app's reminder settings. Returns [{ kind, dueKey, title, body }].
 function computeDue(input, settings, tz, now) {
   tz = validTz(tz || 'UTC');
@@ -97,7 +98,36 @@ function computeDue(input, settings, tz, now) {
       out.push({ kind: 'growth', dueKey: String(input.growth[0]), title: `📏 Growth check for ${name}`, body: 'Time to log weight and height' });
     }
   }
+  // Doctor appointments: one push at each "remind me" time the parent
+  // picked. On by default; apptEnabled === false turns them off.
+  if (s.apptEnabled !== false) {
+    for (const a of input.appointments || []) {
+      if (!a.at || a.at <= now) continue;
+      for (const off of [...new Set(Array.isArray(a.remind) ? a.remind : [])]) {
+        const before = APPT_OFFSETS[off]; if (!before) continue;
+        const due = a.at - before;
+        if (now >= due && now - due < 30 * MIN) {
+          const when = apptWhen(a.at, now, tz);
+          out.push({ kind: 'appt', dueKey: `${a.id}:${off}`, title: `📅 ${a.title || 'Doctor appointment'} ${when.soon ? when.text : when.day}`,
+                     body: [`${name} · ${when.full}`, a.provider].filter(Boolean).join(' · ') });
+        }
+      }
+    }
+  }
   return out;
+}
+const APPT_OFFSETS = { '1d': DAY, '2h': 2 * HOUR, '1h': HOUR, '30m': 30 * MIN };
+// "tomorrow", "today at 9:30 AM", "in 1h", for the appointment push.
+function apptWhen(at, now, tz) {
+  const time = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).format(new Date(at));
+  const a = localParts(at, tz), n = localParts(now, tz);
+  const days = Math.round((Date.UTC(a.y, a.m - 1, a.d) - Date.UTC(n.y, n.m - 1, n.d)) / DAY);
+  const day = days === 0 ? 'today' : days === 1 ? 'tomorrow'
+    : 'on ' + new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long', month: 'short', day: 'numeric' }).format(new Date(at));
+  const mins = Math.round((at - now) / MIN);
+  const soon = mins <= 3 * 60;
+  const text = mins < 60 ? `in ${mins} min` : `in ${Math.floor(mins / 60)}h${mins % 60 ? ' ' + (mins % 60) + 'm' : ''}`;
+  return { day, soon, text, full: `${day[0].toUpperCase() + day.slice(1)} at ${time}` };
 }
 function quietNight(now, tz) { const h = localParts(now, tz).h; return h >= 22 || h < 6; }
 // Naps are a daytime thing; no nap pings overnight.
@@ -119,8 +149,8 @@ async function run(now = Date.now()) {
   const since = new Date(now - 30 * DAY).toISOString();
 
   const [logsRes, growthRes, subsRes] = await Promise.all([
-    supabase.from('logs').select('baby_id, type, logged_at, data')
-      .in('baby_id', babyIds).eq('deleted', false).in('type', ['feed', 'sleep', 'bath'])
+    supabase.from('logs').select('id, baby_id, type, logged_at, data')
+      .in('baby_id', babyIds).eq('deleted', false).in('type', ['feed', 'sleep', 'bath', 'appointment'])
       .gte('logged_at', since).order('logged_at', { ascending: false }).limit(10000),
     supabase.from('growth_logs').select('baby_id, log_date, data')
       .in('baby_id', babyIds).eq('deleted', false).order('log_date', { ascending: false }).limit(5000),
@@ -129,11 +159,17 @@ async function run(now = Date.now()) {
   for (const r of [logsRes, growthRes, subsRes]) if (r.error) throw new Error(r.error.message);
 
   const inputs = {};
-  const inputFor = id => (inputs[id] = inputs[id] || { feeds: [], sleeps: [], baths: [], growth: [] });
+  const inputFor = id => (inputs[id] = inputs[id] || { feeds: [], sleeps: [], baths: [], growth: [], appointments: [] });
   logsRes.data.forEach(l => {
     const ms = Date.parse(l.logged_at);
     if (!ms) return;
     const i = inputFor(l.baby_id);
+    // appointments are in the future; everything else counts only once it has happened
+    if (l.type === 'appointment') {
+      if (ms > now) i.appointments.push({ id: l.id, at: ms, title: l.data?.title, provider: l.data?.provider, remind: l.data?.remind });
+      return;
+    }
+    if (ms > now) return;
     if (l.type === 'feed') i.feeds.push(ms);
     else if (l.type === 'bath') i.baths.push(ms);
     else if (l.type === 'sleep') i.sleeps.push({ start: ms, durationMin: l.data?.durationMin });

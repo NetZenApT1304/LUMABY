@@ -662,7 +662,9 @@ function healthFormHtml() {
       <div class="form-group"><label>Date</label><input class="form-input" id="hl-date" type="date" value="${todayInput()}" max="${todayInput()}"/></div>
       <div class="form-group"><label>Time</label><input class="form-input" id="hl-time" type="time" value="${timeInputNow(0)}"/></div></div>`;
   const tabs = `<div class="seg"><button class="${healthTab === 'vaccine' ? 'active' : ''}" onclick="setHealthTab('vaccine')">Vaccines</button>
-    <button class="${healthTab === 'visit' ? 'active' : ''}" onclick="setHealthTab('visit')">Doctor visit</button></div>`;
+    <button class="${healthTab === 'visit' ? 'active' : ''}" onclick="setHealthTab('visit')">Doctor visit</button>
+    <button class="${healthTab === 'appt' ? 'active' : ''}" onclick="setHealthTab('appt')">Upcoming</button></div>`;
+  if (healthTab === 'appt') return apptFormHtml(tabs);
   if (healthTab === 'vaccine') {
     return `<div class="log-form" id="health-form">${tabs}${when}
       <div class="form-group"><label>Vaccines given</label>${chipsHtml('hl-vax', VACCINES)}</div>
@@ -678,6 +680,7 @@ function healthFormHtml() {
     <button class="btn-primary btn-full" onclick="saveHealth()">Save visit</button></div>`;
 }
 function saveHealth() {
+  if (healthTab === 'appt') return saveAppointment();
   const time = dateTimeToIso(document.getElementById('hl-date').value, document.getElementById('hl-time').value);
   const notes = document.getElementById('hl-notes').value.trim();
   if (healthTab === 'vaccine') {
@@ -695,6 +698,71 @@ function saveHealth() {
     pushLog({ id: uid(), type: 'health', icon: '🩺', title: label, detail: [provider, notes].filter(Boolean).join(' · ') || label, time,
               healthKind: 'visit', visitReason: reason, provider, notes });
   }
+}
+
+// ── 📅 Upcoming doctor appointments ──
+// Saved as type 'appointment' at the appointment's time, so they sync and
+// show on that day. The day is pink on the home day strip, and the server
+// sends a push at each "remind me" time (send-reminders.js).
+const APPT_KINDS = [['checkup', 'Checkup'], ['vaccines', 'Vaccines'], ['sick', 'Sick visit'], ['specialist', 'Specialist'], ['other', 'Other']];
+const APPT_REMIND = [['1d', 'Day before'], ['2h', '2 hours before'], ['1h', '1 hour before'], ['30m', '30 min before']];
+function apptFormHtml(tabs) {
+  const tomorrow = new Date(Date.now() + 864e5);
+  const tomorrowInput = new Date(tomorrow - tomorrow.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const pushNote = !isPremium
+    ? '<p class="form-hint">Notifications are part of Premium. The day still shows pink on your calendar.</p>'
+    : (typeof Notification !== 'undefined' && Notification.permission !== 'granted'
+      ? '<p class="form-hint">We\'ll ask to turn on notifications when you save.</p>' : '');
+  return `<div class="log-form" id="health-form">${tabs}
+    <div class="form-row">
+      <div class="form-group"><label>Date</label><input class="form-input" id="hl-date" type="date" value="${tomorrowInput}" min="${todayInput()}"/></div>
+      <div class="form-group"><label>Time</label><input class="form-input" id="hl-time" type="time" value="09:00"/></div></div>
+    <div class="form-group"><label>Appointment for</label>${chipsHtml('hl-appt-kind', APPT_KINDS, ['checkup'], true)}</div>
+    <div class="form-group"><label>Doctor or clinic</label><input class="form-input" id="hl-provider" placeholder="e.g. Dr. Lee"/></div>
+    <div class="form-group"><label>Notes</label><textarea class="form-input" id="hl-notes" placeholder="Questions to ask, what to bring…"></textarea></div>
+    <div class="form-group"><label>Remind me</label>${chipsHtml('hl-remind', APPT_REMIND, ['1d', '1h'])}${pushNote}</div>
+    <button class="btn-primary btn-full" onclick="saveHealth()">Save appointment</button></div>`;
+}
+function apptTitle(kind) { return { checkup: 'Checkup', vaccines: 'Vaccine appointment', sick: 'Sick visit', specialist: 'Specialist', other: 'Doctor appointment' }[kind] || 'Doctor appointment'; }
+async function saveAppointment() {
+  const time = dateTimeToIso(document.getElementById('hl-date').value, document.getElementById('hl-time').value);
+  if (Date.parse(time) <= Date.now()) { showToast('⚠️ Pick a date and time in the future'); return; }
+  const kind = chipValues('hl-appt-kind')[0] || 'other';
+  const provider = document.getElementById('hl-provider').value.trim();
+  const notes = document.getElementById('hl-notes').value.trim();
+  const remind = chipValues('hl-remind');
+  const title = apptTitle(kind);
+  pushLog({ id: uid(), type: 'appointment', icon: '📅', title, time, apptKind: kind, provider, notes, remind,
+            detail: [provider, notes].filter(Boolean).join(' · ') || 'Upcoming appointment' });
+  // Notifications come from the server; make sure this device can get them.
+  if (remind.length && isPremium && typeof Notification !== 'undefined' && Notification.permission !== 'granted'
+      && typeof enablePushReminders === 'function') {
+    if (await enablePushReminders()) showToast('🔔 We\'ll remind you before the appointment');
+  }
+}
+function upcomingAppointments() {
+  const now = Date.now();
+  return logs.filter(l => l.type === 'appointment' && Date.parse(l.time) > now)
+    .sort((a, b) => Date.parse(a.time) - Date.parse(b.time));
+}
+function fmtApptWhen(iso) {
+  const d = new Date(iso), today = new Date(); today.setHours(0, 0, 0, 0);
+  const day = new Date(d); day.setHours(0, 0, 0, 0);
+  const diff = Math.round((day - today) / 864e5);
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const date = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow'
+    : d.toLocaleDateString([], diff < 7 ? { weekday: 'long' } : { weekday: 'short', month: 'short', day: 'numeric' });
+  return `${date} at ${time}`;
+}
+// "Next appointment" card on the home screen; tapping it opens that day.
+function renderApptBanner() {
+  const el = document.getElementById('apptBanner'); if (!el) return;
+  const next = upcomingAppointments()[0];
+  if (!next) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="appt-banner" onclick="selectDay('${next.time}')">
+    <span class="appt-banner-icon">📅</span>
+    <div><div class="appt-banner-title">${escHtml(next.title)}${next.provider ? ' · ' + escHtml(next.provider) : ''}</div>
+    <div class="appt-banner-when">${fmtApptWhen(next.time)}</div></div></div>`;
 }
 
 // ── 🥕 Solids ──

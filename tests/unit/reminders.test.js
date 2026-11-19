@@ -42,5 +42,20 @@ t('bath every 5 days: day 4 -> not yet', kinds(computeDue({ ...empty, baths: [no
 t('growth: 4 weeks + 1 day -> due', kinds(computeDue({ ...empty, growth: [now - 29 * D] }, S, tz, now)), ['growth']);
 t('growth every 2 weeks: day 15 -> due', kinds(computeDue({ ...empty, growth: [now - 15 * D] }, { growthEnabled: true, growthWeeks: 2 }, tz, now)), ['growth']);
 t('bad time zone falls back to UTC', Array.isArray(computeDue(empty, S, 'Not/AZone', now)), true);
+// ── doctor appointments ──
+const appt = (at, remind = ['1d', '1h']) => ({ ...empty, appointments: [{ id: 'a1', at, title: 'Checkup', provider: 'Dr. Lee', remind }] });
+const at930 = Date.UTC(2026, 10, 17, 14, 30);          // tomorrow 09:30 New York
+t('appt: 24h before -> "day before" push', computeDue(appt(at930), {}, tz, at930 - D + 2 * M).map(r => r.dueKey), ['a1:1d']);
+t('appt: day-before text', computeDue(appt(at930), {}, tz, at930 - D + 2 * M).map(r => [r.title, r.body])[0], ['📅 Checkup tomorrow', 'Luna · Tomorrow at 9:30 AM · Dr. Lee']);
+t('appt: 1h before -> "1 hour" push', computeDue(appt(at930), {}, tz, at930 - H + M).map(r => [r.dueKey, r.title])[0], ['a1:1h', '📅 Checkup in 59 min']);
+t('appt: 3h before -> nothing (not picked)', kinds(computeDue(appt(at930), {}, tz, at930 - 3 * H)), []);
+t('appt: 2h picked -> due 2h before', kinds(computeDue(appt(at930, ['2h']), {}, tz, at930 - 2 * H)), ['appt']);
+t('appt: 30 min picked', kinds(computeDue(appt(at930, ['30m']), {}, tz, at930 - 30 * M)), ['appt']);
+t('appt: window passed (40 min late) -> skipped', kinds(computeDue(appt(at930, ['2h']), {}, tz, at930 - 80 * M)), []);
+t('appt: no reminders picked -> nothing', kinds(computeDue(appt(at930, []), {}, tz, at930 - H)), []);
+t('appt: turned off in settings', kinds(computeDue(appt(at930), { apptEnabled: false }, tz, at930 - H)), []);
+t('appt: night appointment still reminds (no quiet hours)', kinds(computeDue(appt(Date.UTC(2026, 10, 17, 3, 30), ['1h']), {}, tz, Date.UTC(2026, 10, 17, 2, 30))), ['appt']);
+t('appt: 1h before says "Today at"', computeDue(appt(at930), {}, tz, at930 - H)[0].body, 'Luna · Today at 9:30 AM · Dr. Lee');
+t('appt: junk remind values ignored', kinds(computeDue(appt(at930, ['5y', null]), {}, tz, at930 - H)), []);
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

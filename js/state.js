@@ -130,28 +130,65 @@ function updateHeader() {
 let selectedDate = new Date();
 selectedDate.setHours(0,0,0,0);
 
-function buildDayStrip() {
-  const strip = document.getElementById('dayStrip');
-  strip.innerHTML = '';
-  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  for (let i = -4; i <= 3; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    d.setHours(0,0,0,0);
-    const chip = document.createElement('div');
-    chip.className = 'day-chip' + (i === 0 ? ' active' : '');
-    chip.dataset.date = d.toISOString();
-    chip.innerHTML = `<span class="dn">${days[d.getDay()]}</span><span class="dd">${d.getDate()}</span>`;
-    chip.addEventListener('click', () => {
-      document.querySelectorAll('.day-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      selectedDate = new Date(chip.dataset.date);
-      renderTimeline();
-      renderStats();
-    });
-    strip.appendChild(chip);
-  }
+// Past 4 days to 3 days ahead, stretched to reach upcoming doctor
+// appointments (up to 60 days out). Appointment days are pink.
+function dayKey(d) { const x = new Date(d); return `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`; }
+function dayStripRange() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let ahead = 3;
+  const appts = typeof logs !== 'undefined' ? logs.filter(l => l.type === 'appointment') : [];
+  appts.forEach(a => {
+    const d = new Date(a.time); d.setHours(0, 0, 0, 0);
+    const n = Math.round((d - today) / 86400000);
+    if (n > ahead && n <= 60) ahead = n;
+  });
+  const sel = Math.round((selectedDate - today) / 86400000);
+  return { from: Math.min(-4, sel), to: Math.max(ahead, sel), apptDays: new Set(appts.map(a => dayKey(a.time))) };
 }
+function selectDay(date) {
+  selectedDate = new Date(date); selectedDate.setHours(0, 0, 0, 0);
+  renderDayStrip();
+  document.querySelector('.day-chip.active')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  renderTimeline();
+  renderStats();
+}
+let dayStripShape = '';
+function renderDayStrip() {
+  const strip = document.getElementById('dayStrip'); if (!strip) return;
+  const { from, to, apptDays } = dayStripRange();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const shape = `${dayKey(today)}|${from}|${to}`;
+  if (shape !== dayStripShape) { // days changed: rebuild
+    dayStripShape = shape;
+    strip.innerHTML = '';
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    for (let i = from; i <= to; i++) {
+      const d = new Date(today); d.setDate(d.getDate() + i);
+      const chip = document.createElement('div');
+      chip.className = 'day-chip';
+      chip.setAttribute('role', 'button'); chip.tabIndex = 0; // Enter/Space handled in a11y.js
+      chip.dataset.date = d.toISOString();
+      chip.innerHTML = `<span class="dn">${days[d.getDay()]}</span><span class="dd">${d.getDate()}</span>`;
+      chip.addEventListener('click', () => selectDay(chip.dataset.date));
+      strip.appendChild(chip);
+    }
+    // centre today so the days just ahead (where appointments are) show
+    requestAnimationFrame(() => {
+      const t = [...strip.children].find(c => dayKey(c.dataset.date) === dayKey(today));
+      if (t) strip.scrollLeft = t.offsetLeft - strip.offsetLeft - (strip.clientWidth - t.offsetWidth) / 2;
+    });
+  }
+  const selKey = dayKey(selectedDate);
+  strip.querySelectorAll('.day-chip').forEach(chip => {
+    const k = dayKey(chip.dataset.date), appt = apptDays.has(k);
+    chip.classList.toggle('active', k === selKey);
+    chip.classList.toggle('appt', appt);
+    chip.setAttribute('aria-pressed', k === selKey);
+    const d = new Date(chip.dataset.date);
+    chip.setAttribute('aria-label', d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }) + (appt ? ', doctor appointment' : ''));
+  });
+}
+function buildDayStrip() { dayStripShape = ''; renderDayStrip(); }
 
 // =======================================
 //  HOME
@@ -294,6 +331,8 @@ function renderStats() {
 
 // == Timeline ==
 function renderTimeline() {
+  renderDayStrip();
+  if (typeof renderApptBanner === 'function') renderApptBanner();
   const tl = document.getElementById('timeline');
   const dayLogs = getLogsForDate(selectedDate);
 
@@ -306,7 +345,7 @@ function renderTimeline() {
     const item = document.createElement('div');
     item.className = 'timeline-item';
     item.style.animationDelay = (i * 0.05) + 's';
-    const dotClass = 'tl-' + (ev.type === 'milestone' ? 'milestone' : ev.type === 'feed' || ev.type === 'pump' ? 'feed' : ev.type === 'diaper' ? 'diaper' : ev.type === 'growth' ? 'growth' : ev.type === 'sleep' ? 'sleep' : 'other');
+    const dotClass = 'tl-' + (ev.type === 'milestone' ? 'milestone' : ev.type === 'feed' || ev.type === 'pump' ? 'feed' : ev.type === 'diaper' ? 'diaper' : ev.type === 'growth' ? 'growth' : ev.type === 'sleep' ? 'sleep' : ev.type === 'appointment' ? 'appt' : 'other');
     item.innerHTML = `
       <div class="tl-dot ${dotClass}">${ev.icon}</div>
       <div class="tl-info">

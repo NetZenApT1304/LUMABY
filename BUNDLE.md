@@ -21,6 +21,15 @@ Netlify's free plan ran out of deploy credits on 2026-11-16; they reset on
 - Removed the Quick log row from the home screen (it scrolled sideways, cut
   buttons off and repeated the "Log something" grid). One-tap logging stays
   in the home-screen icon shortcuts and the timer bar.
+- Upcoming doctor appointments (Doctor → Upcoming): date, time, type,
+  doctor, notes and "remind me" times (day before / 2h / 1h / 30 min).
+  The day is pink on the home day strip (deep pink when selected; the strip
+  stretches up to 60 days ahead to reach it), a "next appointment" card sits
+  on the home screen, and the server pushes a notification at each picked
+  time (send-reminders.js; Premium, like the other reminders; switch in
+  Reminders). No database change needed: appointments are ordinary synced
+  logs (type `appointment`). Tests: `tests/e2e/appointments.js` and 12 new
+  unit checks.
 
 ## Ship checklist (on or after 2026-12-15)
 1. Check credits: Netlify → team → Usage & billing.

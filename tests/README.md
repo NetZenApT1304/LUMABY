@@ -28,6 +28,7 @@ logic tests run first and need no token.
 | `e2e/tempreport.js` | temperature in Insights, the pediatrician report and its PDF |
 | `e2e/moretrack.js` | doctor & vaccines, solids, teething, and the report/PDF |
 | `e2e/quick.js` | one-tap logging, undo, home-screen shortcuts |
+| `e2e/appointments.js` | upcoming doctor appointments: form, pink days on the day strip, home card, Reminders switch |
 | `e2e/remtimes.js` | the reminder settings screen and its server copy |
 | `e2e/reminders.js` | turning reminders on (device registration) |
 | `e2e/free.js` | a free account: logging works, nothing is synced |

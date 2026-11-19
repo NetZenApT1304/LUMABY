@@ -9,6 +9,7 @@ const REMINDER_DEFAULTS = {
   medsEnabled: false, medsTimes: ['08:00'],
   bathEnabled: false, bathDays: 2,
   growthEnabled: true, growthWeeks: 4,
+  apptEnabled: true,
 };
 const storedReminders = STORE.get('reminders') || {};
 let reminders = { ...REMINDER_DEFAULTS, ...storedReminders };
@@ -111,6 +112,7 @@ function renderRemindersBody() {
       ${renderReminderRow('medsEnabled', '💊', 'Medicine reminder', 'Daily at ' + r.medsTimes.map(fmtTime12).join(', '), medsOptions)}
       ${renderReminderRow('bathEnabled', '🛁', 'Bath reminder', r.bathDays === 1 ? 'Every day' : `Every ${r.bathDays} days`, bathOptions)}
       ${renderReminderRow('growthEnabled', '📏', 'Growth check', r.growthWeeks === 1 ? 'Every week' : `Every ${r.growthWeeks} weeks`, growthOptions)}
+      ${renderReminderRow('apptEnabled', '📅', 'Doctor appointments', 'At the times you pick when adding one (Doctor → Upcoming)', '')}
     </div>
     <button class="btn-primary btn-full" onclick="saveAndScheduleReminders()">
       Save & Enable Reminders
