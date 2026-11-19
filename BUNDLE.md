@@ -56,6 +56,14 @@ Netlify's free plan ran out of deploy credits on 2026-11-16; they reset on
 - Android app (android/, Trusted Web Activity, com.lumaby.app 1.0.0) and
   /.well-known/assetlinks.json (served as JSON via netlify.toml). The
   Play-installed app opens full-screen only once assetlinks.json is live.
+- Google Play billing: in the Android app Premium is bought through Google
+  Play (js/billing.js); play-verify checks each purchase with Google and
+  saves it; play-refresh (daily, netlify.toml) catches renewals and
+  cancellations; migration 006 (applied) adds provider/play columns. The
+  Lemon Squeezy webhook never overwrites a valid Play subscription. Needs
+  env GOOGLE_PLAY_SERVICE_ACCOUNT on Netlify + products in Play Console
+  (STORES.md). Manage Subscription and the delete-account message open the
+  right store.
 
 ## Ship checklist (on or after 2026-12-15)
 1. Check credits: Netlify → team → Usage & billing.

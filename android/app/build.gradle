@@ -50,4 +50,6 @@ android {
 
 dependencies {
     implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
+    // Google Play billing for the web app (Digital Goods API + Play payment method)
+    implementation 'com.google.androidbrowserhelper:billing:1.2.0'
 }

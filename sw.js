@@ -2,7 +2,7 @@
 // Bump APP_VERSION on every deploy that changes precached files so old
 // caches are deleted on activate.
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 const CACHE_NAME = `lumaby-v${APP_VERSION}`;
 const OFFLINE_URL = '/index.html';
 
@@ -14,6 +14,7 @@ const PRECACHE_URLS = [
   '/css/app.css',
   '/js/a11y.js',
   '/js/app-shell.js',
+  '/js/billing.js',
   '/js/book.js',
   '/js/growth-charts.js',
   '/js/insights.js',

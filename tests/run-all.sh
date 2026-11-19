@@ -22,6 +22,7 @@ run() {
 }
 run split-check   node tools/check-split.js
 run reminders     node tests/unit/reminders.test.js
+run play-server   env NODE_USE_ENV_PROXY=1 node tests/unit/play.test.js
 run sync          node tests/e2e/sync.js "$OUT" "$URL"
 run partner       node tests/e2e/partner.js "$OUT" "$URL"
 run babies        node tests/e2e/babies.js "$OUT" "$URL"
@@ -32,6 +33,7 @@ run quick-log     node tests/e2e/quick.js "$OUT" "$URL"
 run appointments  node tests/e2e/appointments.js "$OUT" "$URL"
 run remind-times  node tests/e2e/remtimes.js "$OUT" "$URL"
 run delete-acct    node tests/e2e/deleteaccount.js "$OUT" "$URL"
+run play-billing  node tests/e2e/billing.js "$OUT" "$URL"
 run brand         node tests/e2e/brand.js "$URL"
 run offline       node tests/e2e/offline.js "$URL"
 run keyboard      node tests/e2e/keyboard.js "$OUT" "$URL"

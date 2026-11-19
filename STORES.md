@@ -25,7 +25,7 @@ Status and checklist for getting Lumaby into the stores. The web app
    ID verification (a few days).
 2. **Apple Developer Program:** developer.apple.com, $99/year. Needed for
    the App Store and for Sign in with Apple.
-3. **Decide how Premium is sold inside the store apps** (see "Payments").
+3. **Google Play billing setup** (see "Google Play billing" below).
 4. **Keep the upload key safe:** `lumaby-upload.jks` + `lumaby-upload-key.txt`
    (password). Not in the repo. Password manager + a backup.
 5. **Find 12 Android testers** for the 14-day closed test (new personal
@@ -55,10 +55,40 @@ Status and checklist for getting Lumaby into the stores. The web app
 4. App Store Connect: listing, screenshots, privacy labels (below), age
    rating, a demo account for the reviewer.
 
-## Payments (decide before submitting)
-Note for option A on Android: Google's TWA helper has a Play Billing
-add-on (`com.google.androidbrowserhelper:billing`, Digital Goods API), so
-the web app can sell through Google Play without a native rewrite.
+## Google Play billing (built; needs setup in Play Console)
+Inside the Android app, Premium is sold through Google Play; the website
+keeps Lemon Squeezy. One Premium status either way. Code: `js/billing.js`
+(app), `netlify/functions/play-verify.js` + `play-refresh.js` (server checks
+every purchase with Google, daily renewal check), `netlify/lib/play.js`,
+`supabase/migrations/006_play_billing.sql` (applied). Tests:
+`tests/unit/play.test.js`, `tests/e2e/billing.js`.
+
+**Owner setup, once the developer account is verified** (needs the first
+.aab uploaded to a test track before products can be created):
+1. Play Console → Lumaby → Monetize → Subscriptions → create two
+   subscriptions with these exact product IDs:
+   - `premium_monthly`: one base plan, monthly, auto-renewing, $4.99
+     (Play sets other countries' prices). Add an offer: **7-day free trial**,
+     new customers only. Mark the base plan **backwards compatible**.
+   - `premium_yearly`: one base plan, yearly, auto-renewing, $35.99.
+     Backwards compatible. (Trial optional.)
+2. Google Cloud console (console.cloud.google.com): create a project →
+   enable **Google Play Android Developer API** → IAM → Service accounts →
+   create one → Keys → Add key → JSON (downloads a file; keep it private).
+3. Play Console → Users and permissions → Invite new users → the service
+   account's email → app: Lumaby → permissions: **View financial data**
+   and **Manage orders and subscriptions**.
+4. Netlify → Site configuration → Environment variables → add
+   `GOOGLE_PLAY_SERVICE_ACCOUNT` = the whole JSON file contents. (Or upload
+   the file to a Claude session and Claude sets it through the Netlify API.
+   Don't paste the key into chat.)
+5. Play Console → Setup → License testing → add your testers' Gmail
+   addresses so test purchases aren't charged.
+
+## Payments (decision)
+**Chosen: A** (store billing in the Play app, Lemon Squeezy on the web).
+Apple still to do when the iPhone app is built.
+
 
 Both stores generally require their own in-app purchase system for digital
 subscriptions bought inside the app (15% fee for small developers). Lemon

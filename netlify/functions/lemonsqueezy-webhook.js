@@ -89,7 +89,7 @@ function grantsPremium(status, expiresAt) {
 async function getCurrentSubscription(userId) {
   const res = await supabase
     .from('subscriptions')
-    .select('ls_subscription_id, status, expires_at')
+    .select('ls_subscription_id, provider, status, expires_at')
     .eq('user_id', userId)
     .maybeSingle();
   check(res, 'Lookup of current subscription failed');
@@ -101,7 +101,11 @@ async function getCurrentSubscription(userId) {
 // one on file still grants it, e.g. an old monthly plan expiring after the
 // user has switched to yearly.
 function isStaleEvent(current, lsSubscriptionId, incomingGrantsPremium) {
-  if (!current || !current.ls_subscription_id) return false;
+  if (!current) return false;
+  // Premium bought through Google Play is never replaced by a Lemon Squeezy
+  // event that doesn't grant Premium.
+  if (current.provider === 'play') return grantsPremium(current.status, current.expires_at) && !incomingGrantsPremium;
+  if (!current.ls_subscription_id) return false;
   if (current.ls_subscription_id === lsSubscriptionId) return false;
   return grantsPremium(current.status, current.expires_at) && !incomingGrantsPremium;
 }
@@ -181,6 +185,9 @@ exports.handler = async (event) => {
 
       const res = await supabase.from('subscriptions').upsert({
         user_id: userId,
+        provider: 'lemonsqueezy',
+        play_purchase_token: null,
+        play_product_id: null,
         ls_subscription_id: lsSubscriptionId,
         ls_customer_id: attrs.customer_id?.toString() || null,
         status,
@@ -204,6 +211,8 @@ exports.handler = async (event) => {
           '- user has active subscription', current.ls_subscription_id);
         return json(200, { received: true, ignored: 'stale_subscription' });
       }
+      // Invoice events never touch a Google Play subscription row.
+      if (current?.provider === 'play') return json(200, { received: true, ignored: 'play_subscription' });
 
       // A successful payment only changes the status when it recovers a
       // failed one. Otherwise it would mark trials as active: Lemon Squeezy

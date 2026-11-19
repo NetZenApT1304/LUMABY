@@ -30,6 +30,8 @@ logic tests run first and need no token.
 | `e2e/quick.js` | one-tap logging, undo, home-screen shortcuts |
 | `e2e/appointments.js` | upcoming doctor appointments: form, pink days on the day strip, home card, Reminders switch |
 | `e2e/deleteaccount.js` | Delete my account: partner and owner cases, subscription block, everything removed from Supabase, device wiped |
+| `unit/play.test.js` | Google Play billing server (play-verify, play-refresh) against real Supabase, Google simulated |
+| `e2e/billing.js` | Google Play billing in the Android app (prices, purchase, restore, errors); website still Lemon Squeezy |
 | `e2e/brand.js` | logo and icons: every icon exists at its stated size, lockup on sign-in/welcome in day and night |
 | `e2e/remtimes.js` | the reminder settings screen and its server copy |
 | `e2e/reminders.js` | turning reminders on (device registration) |

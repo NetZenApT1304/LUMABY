@@ -515,7 +515,7 @@ async function deleteMyAccount() {
   if (error) {
     btn.disabled = false; btn.textContent = 'Delete my account';
     err.innerHTML = /active_subscription/.test(error.message)
-      ? 'Your Premium subscription is still active. Cancel it first so you aren\'t charged again, then delete your account. <a href="https://app.lemonsqueezy.com/my-orders" target="_blank" rel="noopener">Manage subscription</a>'
+      ? 'Your Premium subscription is still active. Cancel it first so you aren\'t charged again, then delete your account. <a href="#" onclick="manageSubscription();return false">Manage subscription</a>'
       : 'Couldn\'t delete your account. Check your connection and try again.';
     err.style.display = 'block';
     return;

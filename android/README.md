@@ -12,6 +12,9 @@ requirement, or Play policy change.
 - Long-press shortcuts: Repeat last feed, Wet diaper, Dirty diaper, Start
   sleep timer (same as the web app)
 - Reminders (web push) show as Lumaby notifications (DelegationService)
+- Google Play billing: `com.google.androidbrowserhelper:billing` gives the
+  web app Google Play as a payment method (Digital Goods API). Products
+  `premium_monthly` / `premium_yearly`; see ../STORES.md.
 
 ## Build
 Needs JDK 17+ and the Android SDK (platform 36). From `android/`:

@@ -8,6 +8,10 @@
 [functions."send-reminders"]
   schedule = "*/5 * * * *"
 
+# Google Play subscriptions: re-check renewals/cancellations daily
+[functions."play-refresh"]
+  schedule = "17 9 * * *"
+
 # Redirect all routes to index.html (SPA)
 [[redirects]]
   from = "/*"
